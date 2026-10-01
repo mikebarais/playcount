@@ -119,6 +119,13 @@ export default function App() {
         </h1>
       </header>
 
+      {/* Announcement Banner if present */}
+      {club?.banner_message && (
+        <section className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-amber-300 text-sm">
+          {club.banner_message}
+        </section>
+      )}
+
       {/* Event Details Card */}
       <section className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-4 space-y-3">
         <div className="flex items-center gap-3 text-slate-300 text-sm">
@@ -147,7 +154,7 @@ export default function App() {
             style={{ width: `${Math.min((totalAttendees / minRequired) * 100, 100)}%` }}
           />
         </div>
-      </div>
+      </section>
 
       {/* Attendance Voting Buttons */}
       <section className="space-y-3">
