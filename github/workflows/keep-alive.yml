@@ -1,0 +1,15 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    # Runs at 09:00 AM UTC every Monday and Thursday
+    - cron: '0 9 * * 1,4'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" "${{ secrets.SUPABASE_PING_URL }}"
