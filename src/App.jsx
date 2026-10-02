@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { 
   Users, Calendar, MapPin, AlertCircle, CheckCircle, 
-  XCircle, HelpCircle, Plus, Trash2, ShieldCheck, Globe
+  XCircle, HelpCircle, Plus, Trash2, ShieldCheck, Globe, Copy, UserPlus, List
 } from 'lucide-react';
 import { fr } from './locales/fr';
 import { en } from './locales/en';
@@ -23,8 +23,15 @@ export default function App() {
   const [exceptionalParticipants, setExceptionalParticipants] = useState([]);
   const [allPlayers, setAllPlayers] = useState([]);
   
+  // Admin Mode States
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminTab, setAdminTab] = useState('sessions'); // 'sessions' or 'members'
+  
+  // Forms States
   const [newParticipantName, setNewParticipantName] = useState('');
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerEmail, setNewPlayerEmail] = useState('');
+  const [copiedToken, setCopiedToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -94,12 +101,7 @@ export default function App() {
         setExceptionalParticipants(excData || []);
       }
 
-      const { data: playersData } = await supabase
-        .from('players')
-        .select('*')
-        .eq('club_id', clubData.id)
-        .eq('is_active', true);
-      setAllPlayers(playersData || []);
+      await fetchPlayers(clubData.id);
 
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -108,6 +110,44 @@ export default function App() {
     }
   };
 
+  const fetchPlayers = async (clubId) => {
+    const { data: playersData } = await supabase
+      .from('players')
+      .select('*')
+      .eq('club_id', clubId)
+      .order('name', { ascending: true });
+    setAllPlayers(playersData || []);
+  };
+
+  // Add Permanent Player (Admin feature)
+  const handleAddPlayer = async (e) => {
+    e.preventDefault();
+    if (!newPlayerName.trim() || !club) return;
+
+    const generatedToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    const { data, error } = await supabase
+      .from('players')
+      .insert({
+        club_id: club.id,
+        name: newPlayerName.trim(),
+        google_email: newPlayerEmail.trim() || null,
+        token_link: generatedToken,
+        is_active: true
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      setAllPlayers(prev => [...prev, data]);
+      setNewPlayerName('');
+      setNewPlayerEmail('');
+    } else {
+      console.error('Error adding player:', error);
+    }
+  };
+
+  // Vote for a player
   const handleVote = async (sessionId, status) => {
     if (!player) return;
 
@@ -141,6 +181,7 @@ export default function App() {
     }
   };
 
+  // Add Exceptional Participant per Session (Admin feature)
   const handleAddExceptional = async (sessionId) => {
     if (!newParticipantName.trim()) return;
 
@@ -159,6 +200,7 @@ export default function App() {
     }
   };
 
+  // Delete Exceptional Participant
   const handleRemoveExceptional = async (id) => {
     const { error } = await supabase
       .from('exceptional_participants')
@@ -168,6 +210,13 @@ export default function App() {
     if (!error) {
       setExceptionalParticipants(prev => prev.filter(item => item.id !== id));
     }
+  };
+
+  const copyToClipboard = (token) => {
+    const link = `${window.location.origin}${window.location.pathname}?club=${clubSlug}&token=${token}`;
+    navigator.clipboard.writeText(link);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
   };
 
   if (loading) {
@@ -197,7 +246,7 @@ export default function App() {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Language Switcher */}
+          {/* Language Toggle */}
           <button 
             onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 hover:bg-slate-600 transition"
@@ -228,48 +277,123 @@ export default function App() {
       )}
 
       <main className="max-w-md mx-auto p-4 space-y-6">
-        {/* Admin Matrix View */}
+        
+        {/* ADMIN MANAGEMENT PANEL */}
         {isAdmin && (
-          <section className="bg-slate-800 rounded-xl p-4 border border-slate-700 overflow-hidden">
-            <h2 className="text-md font-bold mb-3 text-slate-200 flex items-center gap-2">
-              <Users className="w-4 h-4 text-indigo-400" /> {t.matrix.title}
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left border-collapse min-w-[300px]">
-                <thead>
-                  <tr className="border-b border-slate-700 text-slate-400">
-                    <th className="py-2 pr-2">{t.matrix.playerHeader}</th>
-                    {sessions.map(s => (
-                      <th key={s.id} className="py-2 px-2 text-center whitespace-nowrap">
-                        {new Date(s.date_time).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700/50">
-                  {allPlayers.map(p => (
-                    <tr key={p.id}>
-                      <td className="py-2 pr-2 font-medium text-slate-300">{p.name}</td>
-                      {sessions.map(s => {
-                        const status = responses[`${s.id}_${p.id}`]?.status;
-                        return (
-                          <td key={s.id} className="py-2 px-2 text-center">
-                            {status === 'yes' && <span className="text-emerald-400 font-bold">{t.status.present}</span>}
-                            {status === 'maybe' && <span className="text-amber-400 font-bold">{t.status.uncertain}</span>}
-                            {status === 'no' && <span className="text-rose-400 font-bold">{t.status.absent}</span>}
-                            {!status && <span className="text-slate-600">-</span>}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg mb-6">
+            <div className="flex border-b border-slate-700 bg-slate-800/50">
+              <button
+                onClick={() => setAdminTab('sessions')}
+                className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                  adminTab === 'sessions' ? 'bg-slate-700 text-amber-400 border-b-2 border-amber-400' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <List className="w-4 h-4" /> {t.admin?.sessionsTab || "Sessions Matrix"}
+              </button>
+              <button
+                onClick={() => setAdminTab('members')}
+                className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                  adminTab === 'members' ? 'bg-slate-700 text-amber-400 border-b-2 border-amber-400' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <UserPlus className="w-4 h-4" /> {t.admin?.membersTab || "Permanent Members"}
+              </button>
             </div>
-          </section>
+
+            {/* TAB: MEMBERS MANAGEMENT */}
+            {adminTab === 'members' && (
+              <div className="p-4 space-y-4">
+                <form onSubmit={handleAddPlayer} className="space-y-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700/60">
+                  <h3 className="text-xs font-bold text-slate-300 uppercase">{t.admin?.addPlayerTitle || "Add Permanent Member"}</h3>
+                  <input
+                    type="text"
+                    placeholder={t.admin?.playerNamePlaceholder || "Player Name"}
+                    value={newPlayerName}
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    required
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                  <input
+                    type="email"
+                    placeholder={t.admin?.playerEmailPlaceholder || "Google Email (optional)"}
+                    value={newPlayerEmail}
+                    onChange={(e) => setNewPlayerEmail(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1 transition"
+                  >
+                    <Plus className="w-4 h-4" /> {t.admin?.addButton || "Add Player"}
+                  </button>
+                </form>
+
+                {/* Permanent Members List */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase">Membres Registrés ({allPlayers.length})</h4>
+                  <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                    {allPlayers.map(p => (
+                      <div key={p.id} className="flex items-center justify-between bg-slate-900/60 px-3 py-2 rounded-lg text-xs border border-slate-700/40">
+                        <div>
+                          <p className="font-bold text-slate-200">{p.name}</p>
+                          {p.google_email && <p className="text-[10px] text-slate-400">{p.google_email}</p>}
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(p.token_link)}
+                          className="flex items-center gap-1 text-xs bg-slate-800 hover:bg-slate-700 text-indigo-300 px-2.5 py-1 rounded border border-slate-600 transition"
+                        >
+                          <Copy className="w-3 h-3" />
+                          {copiedToken === p.token_link ? (t.admin?.copied || "Copied!") : (t.admin?.copyLink || "Copy Link")}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: SESSIONS MATRIX */}
+            {adminTab === 'sessions' && (
+              <div className="p-4 overflow-x-auto">
+                <h2 className="text-xs font-bold mb-3 text-slate-300 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-indigo-400" /> {t.matrix.title}
+                </h2>
+                <table className="w-full text-xs text-left border-collapse min-w-[300px]">
+                  <thead>
+                    <tr className="border-b border-slate-700 text-slate-400">
+                      <th className="py-2 pr-2">{t.matrix.playerHeader}</th>
+                      {sessions.map(s => (
+                        <th key={s.id} className="py-2 px-2 text-center whitespace-nowrap">
+                          {new Date(s.date_time).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {allPlayers.map(p => (
+                      <tr key={p.id}>
+                        <td className="py-2 pr-2 font-medium text-slate-300">{p.name}</td>
+                        {sessions.map(s => {
+                          const status = responses[`${s.id}_${p.id}`]?.status;
+                          return (
+                            <td key={s.id} className="py-2 px-2 text-center">
+                              {status === 'yes' && <span className="text-emerald-400 font-bold">{t.status.present}</span>}
+                              {status === 'maybe' && <span className="text-amber-400 font-bold">{t.status.uncertain}</span>}
+                              {status === 'no' && <span className="text-rose-400 font-bold">{t.status.absent}</span>}
+                              {!status && <span className="text-slate-600">-</span>}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Sessions List */}
+        {/* SESSIONS LIST */}
         {sessions.map(session => {
           const sessionExceptional = exceptionalParticipants.filter(e => e.session_id === session.id);
           
@@ -302,7 +426,7 @@ export default function App() {
                 )}
               </div>
 
-              {/* Headcount Viability */}
+              {/* Headcount Viability Progress */}
               <div className="p-4 bg-slate-800/50 border-b border-slate-700/60">
                 <div className="flex justify-between items-center text-xs mb-1.5">
                   <span className="text-slate-300 font-medium">
@@ -320,7 +444,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Voting Options */}
+              {/* Voting Options for Registered Player */}
               {player && (
                 <div className="p-4 border-b border-slate-700/60">
                   <p className="text-xs text-slate-400 mb-2 font-medium">{t.session.yourAttendance}:</p>
@@ -362,7 +486,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* Exceptional Participants Section (Admin) */}
+              {/* Exceptional Participants / Guests Section (Admin per Session) */}
               {isAdmin && (
                 <div className="p-4 bg-slate-800/80 border-b border-slate-700/60 space-y-3">
                   <p className="text-xs font-bold text-amber-400 uppercase tracking-wider">{t.session.exceptionalTitle}</p>
