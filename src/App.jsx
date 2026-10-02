@@ -73,13 +73,12 @@ export default function App() {
     }
   }
 
-  async function handleResponse(status, guests = 0) {
+  async function handleResponse(status) {
     if (!player) return;
 
     const newResponse = {
       player_id: player.id,
       status,
-      guests,
       updated_at: new Date().toISOString()
     };
 
