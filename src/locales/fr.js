@@ -1,30 +1,16 @@
+// Adaugă la dicționarul existent:
 export const fr = {
-  header: {
-    player: "Joueur",
-    adminMode: "Mode Admin",
-    admin: "Admin"
-  },
-  status: {
-    present: "Présent",
-    uncertain: "Incertain",
-    absent: "Absent",
-    confirmed: "Confirmat",
-    pending: "En attente"
-  },
-  matrix: {
-    title: "Matrice de Présence",
-    playerHeader: "Joueur"
-  },
-  session: {
-    totalConfirmed: "Total confirmés",
-    yourAttendance: "Votre Présence",
-    exceptionalTitle: "Participants Exceptionnels (Admin)",
-    addPlaceholder: "Nom du participant...",
-    addButton: "Ajouter",
-    exceptionalLabel: "Exceptionnel"
-  },
-  errors: {
-    notFound: "Club non trouvé.",
-    loading: "Chargement de PlayCount..."
+  // ... restul traducerilor
+  admin: {
+    title: "Gestion du Club",
+    membersTab: "Membres Permanents",
+    sessionsTab: "Matrice de Présence",
+    addPlayerTitle: "Ajouter un Membre Permanent",
+    playerNamePlaceholder: "Nom du joueur...",
+    playerEmailPlaceholder: "Email Google (optionnel)...",
+    addButton: "Ajouter le joueur",
+    copyLink: "Copier le lien direct",
+    copied: "Copié !",
+    activeStatus: "Actif"
   }
 };
