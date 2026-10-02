@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { Check, X, HelpCircle, UserPlus, Users, Calendar, MapPin, Shield } from 'lucide-react';
+import { Check, X, HelpCircle, Users, Calendar, MapPin, Shield } from 'lucide-react';
 
 export default function App() {
   const [club, setClub] = useState(null);
@@ -10,10 +10,10 @@ export default function App() {
   const [currentResponse, setCurrentResponse] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Extract club slug and player token from URL parameters
+  // Extract params from URL
   const urlParams = new URLSearchParams(window.location.search);
   const clubSlug = urlParams.get('club') || 'lamanchette';
-  const playerToken = urlParams.get('token') || 'manchette-admin-token-123';
+  const playerToken = urlParams.get('token') || 'admin-token-12345';
 
   useEffect(() => {
     fetchInitialData();
@@ -23,27 +23,27 @@ export default function App() {
     try {
       setLoading(true);
 
-      // 1. Fetch club info safely
-      const { data: clubData, error: clubError } = await supabase
+      // 1. Fetch club info
+      const { data: clubData } = await supabase
         .from('clubs')
         .select('*')
         .eq('slug', clubSlug)
         .maybeSingle();
-      
+
       if (clubData) {
         setClub(clubData);
 
-        // 2. Fetch schedule info only if club exists
+        // 2. Fetch schedule info
         const { data: scheduleData } = await supabase
           .from('schedules')
           .select('*')
           .eq('club_id', clubData.id)
           .maybeSingle();
-        
+
         if (scheduleData) setSchedule(scheduleData);
       }
 
-      // 3. Fetch player by token safely
+      // 3. Fetch player by token
       if (playerToken) {
         const { data: playerData } = await supabase
           .from('players')
@@ -54,15 +54,15 @@ export default function App() {
         if (playerData) setPlayer(playerData);
       }
 
-      // 4. Fetch all responses for the active session safely
+      // 4. Fetch all responses
       const { data: responsesData } = await supabase
         .from('responses')
         .select('*, players(name)');
-      
+
       if (responsesData) {
         setResponses(responsesData);
-        if (player) {
-          const myResp = responsesData.find(r => r.player_id === player.id);
+        if (playerToken) {
+          const myResp = responsesData.find(r => r.players?.token_link === playerToken);
           if (myResp) setCurrentResponse(myResp);
         }
       }
@@ -76,18 +76,26 @@ export default function App() {
   async function handleResponse(status) {
     if (!player) return;
 
+    const activeSessionId = schedule?.id || null;
+
     const newResponse = {
+      session_id: activeSessionId,
       player_id: player.id,
       status,
       updated_at: new Date().toISOString()
     };
 
+    // Dacă există deja un răspuns pentru acest jucător, îi refolosim ID-ul
+    if (currentResponse?.id) {
+      newResponse.id = currentResponse.id;
+    }
+
     setCurrentResponse(newResponse);
 
-    // Save response to Supabase
+    // Salvare / Actualizare în Supabase
     const { error } = await supabase
       .from('responses')
-      .upsert(newResponse, { onConflict: 'session_id,player_id' });
+      .upsert(newResponse, { onConflict: 'player_id' });
 
     if (error) {
       console.error('Error saving response:', error);
@@ -96,10 +104,7 @@ export default function App() {
     }
   }
 
-  const totalAttendees = (responses || [])
-    .filter(r => r?.status === 'yes')
-    .reduce((acc, r) => acc + 1 + (r?.guests || 0), 0);
-
+  const totalAttendees = (responses || []).filter(r => r?.status === 'yes').length;
   const minRequired = club?.min_players || 8;
   const isTargetMet = totalAttendees >= minRequired;
 
@@ -124,14 +129,14 @@ export default function App() {
         </h1>
       </header>
 
-      {/* Announcement Banner if present */}
+      {/* Banner message if set by admin */}
       {club?.banner_message && (
         <section className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-amber-300 text-sm">
           {club.banner_message}
         </section>
       )}
 
-      {/* Event Details Card */}
+      {/* Event Details */}
       <section className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-4 space-y-3">
         <div className="flex items-center gap-3 text-slate-300 text-sm">
           <Calendar className="w-4 h-4 text-indigo-400 shrink-0" />
@@ -139,11 +144,11 @@ export default function App() {
         </div>
         <div className="flex items-center gap-3 text-slate-300 text-sm">
           <MapPin className="w-4 h-4 text-indigo-400 shrink-0" />
-          <span>{schedule?.default_location || 'Centre Sportif Blocry (Salle G3)'}</span>
+          <span>{schedule?.default_location || 'Blocry Gym Hall G3'}</span>
         </div>
       </section>
 
-      {/* Target Progress Bar */}
+      {/* Counter */}
       <section className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-4 space-y-2">
         <div className="flex justify-between items-center text-sm">
           <span className="text-slate-400 flex items-center gap-1.5">
@@ -154,21 +159,23 @@ export default function App() {
           </span>
         </div>
         <div className="w-full bg-slate-700 rounded-full h-2.5 overflow-hidden">
-          <div 
-            className={`h-2.5 rounded-full transition-all duration-500 ${isTargetMet ? 'bg-emerald-500' : 'bg-amber-500'}`}
+          <div
+            className={`h-2.5 rounded-full transition-all duration-500 ${
+              isTargetMet ? 'bg-emerald-500' : 'bg-amber-500'
+            }`}
             style={{ width: `${Math.min((totalAttendees / minRequired) * 100, 100)}%` }}
           />
         </div>
       </section>
 
-      {/* Attendance Voting Buttons */}
+      {/* Voting Buttons */}
       <section className="space-y-3">
         <h2 className="text-xs uppercase font-bold tracking-wider text-slate-400">
-          Votre Présence ({player?.name || 'Joueur'})
+          VOTRE PRÉSENCE ({player?.name || 'JOUEUR'})
         </h2>
         <div className="grid grid-cols-3 gap-2">
           <button
-            onClick={() => handleResponse('yes', currentResponse?.guests || 0)}
+            onClick={() => handleResponse('yes')}
             className={`p-3 rounded-xl border font-medium text-sm flex flex-col items-center gap-1.5 transition-all ${
               currentResponse?.status === 'yes'
                 ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
@@ -180,7 +187,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => handleResponse('maybe', 0)}
+            onClick={() => handleResponse('maybe')}
             className={`p-3 rounded-xl border font-medium text-sm flex flex-col items-center gap-1.5 transition-all ${
               currentResponse?.status === 'maybe'
                 ? 'bg-amber-500/20 border-amber-500 text-amber-300'
@@ -192,7 +199,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => handleResponse('no', 0)}
+            onClick={() => handleResponse('no')}
             className={`p-3 rounded-xl border font-medium text-sm flex flex-col items-center gap-1.5 transition-all ${
               currentResponse?.status === 'no'
                 ? 'bg-rose-500/20 border-rose-500 text-rose-300'
@@ -203,36 +210,12 @@ export default function App() {
             Absent
           </button>
         </div>
-
-        {/* Guests selector if confirmed present */}
-        {currentResponse?.status === 'yes' && (
-          <div className="pt-2 flex items-center justify-between bg-slate-800/30 p-3 rounded-xl border border-slate-700/30">
-            <span className="text-xs text-slate-300 flex items-center gap-1.5">
-              <UserPlus className="w-4 h-4 text-indigo-400" /> Invités supplémentaires
-            </span>
-            <div className="flex gap-1">
-              {[0, 1, 2].map(num => (
-                <button
-                  key={num}
-                  onClick={() => handleResponse('yes', num)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                    (currentResponse?.guests || 0) === num
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  +{num}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Roster List */}
       <section className="space-y-3">
         <h2 className="text-xs uppercase font-bold tracking-wider text-slate-400">
-          Liste des Participants
+          LISTE DES PARTICIPANTS
         </h2>
         <div className="bg-slate-800/40 border border-slate-700/40 rounded-2xl divide-y divide-slate-700/40 overflow-hidden">
           {responses.length === 0 ? (
@@ -244,18 +227,21 @@ export default function App() {
               <div key={idx} className="p-3 flex justify-between items-center text-sm">
                 <span className="text-slate-200 font-medium">
                   {resp.players?.name || 'Joueur Anonyme'}
-                  {resp.guests > 0 && (
-                    <span className="ml-1.5 text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
-                      +{resp.guests} invité{resp.guests > 1 ? 's' : ''}
-                    </span>
-                  )}
                 </span>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                  resp.status === 'yes' ? 'bg-emerald-500/10 text-emerald-400' :
-                  resp.status === 'maybe' ? 'bg-amber-500/10 text-amber-400' :
-                  'bg-rose-500/10 text-rose-400'
-                }`}>
-                  {resp.status === 'yes' ? 'Présent' : resp.status === 'maybe' ? 'Incertain' : 'Absent'}
+                <span
+                  className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                    resp.status === 'yes'
+                      ? 'bg-emerald-500/10 text-emerald-400'
+                      : resp.status === 'maybe'
+                      ? 'bg-amber-500/10 text-amber-400'
+                      : 'bg-rose-500/10 text-rose-400'
+                  }`}
+                >
+                  {resp.status === 'yes'
+                    ? 'Présent'
+                    : resp.status === 'maybe'
+                    ? 'Incertain'
+                    : 'Absent'}
                 </span>
               </div>
             ))
