@@ -241,9 +241,9 @@ The application should enforce one club configuration per deployment, unique ver
 
 ## 17. Database Schema Management
 
-- SQL migrations are stored in `supabase/migrations/` and applied in timestamp order by `.github/workflows/supabase-migrations.yml`.
-- The workflow runs when migration files change on `main` and can be started manually for initial provisioning.
-- The workflow uses the protected GitHub environment `supabase-production` with the per-club secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, and `SUPABASE_DB_PASSWORD`.
+- Each club has an isolated Supabase CLI project and timestamped migration directory under `instances/<club>/supabase/`.
+- The La Manchette workflow applies only `instances/lamanchette/supabase/migrations/` to the La Manchette project when those files change on `main`; it can also be started manually.
+- The La Manchette workflow uses the protected GitHub environment `supabase-playcount-lamanchette` with its own `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, and `SUPABASE_DB_PASSWORD` secrets.
 - The workflow links the Supabase CLI to that project and runs `supabase db push --linked --yes`; a failed migration fails the workflow.
 - The migrations create the documented tables and seed La Manchette with a Saturday 10:00 two-hour schedule in `Europe/Brussels` at Centre sportif de Blocry, with an eight-player minimum. The first admin is Maximilian Barais (`mikebarais@gmail.com`).
 - Each recurring schedule stores its own IANA timezone; generated session timestamps use the timezone of their schedule pattern.
