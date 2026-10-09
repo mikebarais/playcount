@@ -1,7 +1,13 @@
 :root {
+  --color-page: #143b34;
+  --color-banner: #193f37;
+  --color-text: #f4f0e4;
+  --color-accent: #e2ed75;
+  --color-shape: #e2ed75;
+  --color-rule: #ed7355;
   font-family: "Arial Narrow", "Franklin Gothic Medium", Impact, sans-serif;
-  color: #f4f0e4;
-  background: #143b34;
+  color: var(--color-text);
+  background: var(--color-page);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -31,7 +37,7 @@ body {
   display: grid;
   place-items: center;
   padding: 28px;
-  background: #143b34;
+  background: var(--color-page);
 }
 
 .club-banner {
@@ -42,7 +48,7 @@ body {
   width: min(100%, 1440px);
   min-height: min(76svh, 760px);
   overflow: hidden;
-  background: #193f37;
+  background: var(--color-banner);
 }
 
 .banner-content {
@@ -54,7 +60,7 @@ body {
 
 .banner-message {
   margin: 0 0 28px;
-  color: #e2ed75;
+  color: var(--color-accent);
   font-family: "Trebuchet MS", sans-serif;
   font-size: 14px;
   font-weight: 700;
@@ -65,7 +71,7 @@ body {
 .club-banner h1 {
   max-width: 850px;
   margin: 0;
-  color: #f4f0e4;
+  color: var(--color-text);
   font-size: 104px;
   font-weight: 900;
   line-height: 0.86;
@@ -78,12 +84,12 @@ body {
   width: 96px;
   height: 8px;
   margin-top: 38px;
-  background: #ed7355;
+  background: var(--color-rule);
 }
 
 .member-greeting {
   margin: 28px 0 0;
-  color: #f4f0e4;
+  color: var(--color-text);
   font-family: "Trebuchet MS", sans-serif;
   font-size: 20px;
   font-weight: 700;
@@ -105,8 +111,8 @@ body {
 .sign-in-button {
   padding: 12px 22px;
   border: 0;
-  background: #f4f0e4;
-  color: #143b34;
+  background: var(--color-text);
+  color: var(--color-page);
   font: inherit;
   font-size: 16px;
   font-weight: 700;
@@ -115,7 +121,17 @@ body {
 
 .sign-in-button:hover,
 .sign-in-button:focus-visible {
-  background: #e2ed75;
+  background: var(--color-accent);
+}
+
+.club-logo {
+  position: absolute;
+  z-index: 2;
+  top: 24px;
+  right: 24px;
+  width: 112px;
+  height: 112px;
+  object-fit: contain;
 }
 
 .banner-shape {
@@ -125,7 +141,7 @@ body {
   right: -8%;
   width: 43%;
   height: 100%;
-  background-color: #e2ed75;
+  background-color: var(--color-shape);
   clip-path: polygon(42% 0, 100% 0, 58% 100%, 0 100%);
 }
 
@@ -136,8 +152,8 @@ body {
     135deg,
     transparent 0,
     transparent 17px,
-    rgb(20 59 52 / 10%) 17px,
-    rgb(20 59 52 / 10%) 19px
+    rgb(0 0 0 / 10%) 17px,
+    rgb(0 0 0 / 10%) 19px
   );
   content: "";
 }
@@ -169,6 +185,13 @@ body {
     width: 64px;
     height: 6px;
     margin-top: 28px;
+  }
+
+  .club-logo {
+    top: 16px;
+    right: 16px;
+    width: 72px;
+    height: 72px;
   }
 
   .banner-shape {

@@ -10,6 +10,17 @@ import {
 import './App.css';
 
 const personalLinkPattern = /^\/p\/([^/]+)\/?$/;
+const themeKeys = ['page', 'banner', 'text', 'accent', 'shape', 'rule'];
+const hexColorPattern = /^#[0-9a-f]{6}$/i;
+
+function applyTheme(theme) {
+  for (const key of themeKeys) {
+    const value = theme?.[key];
+    if (typeof value === 'string' && hexColorPattern.test(value)) {
+      document.documentElement.style.setProperty(`--color-${key}`, value);
+    }
+  }
+}
 
 function getPersonalLink(pathname = window.location.pathname) {
   const match = pathname.match(personalLinkPattern);
@@ -41,7 +52,7 @@ export default function App() {
         setAuthClient(supabase);
         const { data, error } = await supabase
           .from('clubs')
-          .select('name, banner_message')
+          .select('name, banner_message, theme, logo_path')
           .limit(1)
           .maybeSingle();
 
@@ -49,7 +60,13 @@ export default function App() {
 
         if (error || !data) throw error || new Error('Club row was not found.');
 
-        setClub(data);
+        setClub({
+          ...data,
+          logoUrl: data.logo_path
+            ? supabase.storage.from('branding').getPublicUrl(data.logo_path).data.publicUrl
+            : null,
+        });
+        applyTheme(data.theme);
         document.title = data.name;
 
         const personalLink = getPersonalLink();
@@ -128,6 +145,9 @@ export default function App() {
     <main className="page-shell">
       <section className="club-banner" aria-labelledby="club-title">
         <div className="banner-shape" aria-hidden="true" />
+        {memberName && club.logoUrl && (
+          <img className="club-logo" src={club.logoUrl} alt={`${club.name} logo`} />
+        )}
         <div className="banner-content">
           {club.banner_message && <p className="banner-message">{club.banner_message}</p>}
           <h1 id="club-title">{club.name}</h1>

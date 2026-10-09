@@ -147,6 +147,8 @@ The principal attendance view is a chronological attendance matrix designed for 
 - A club administrator can define an announcement message.
 - The announcement is displayed prominently in the player-facing session view.
 - The announcement is associated with the club rather than with an individual player.
+- Each club defines its color theme in the `clubs.theme` row (`page`, `banner`, `text`, `accent`, `shape`, `rule` hex colors); the frontend applies it and falls back to neutral defaults.
+- A club can have a logo, stored in the public `branding` storage bucket and referenced by `clubs.logo_path`. Signed-in members see it in the banner corner.
 
 ## 15. Administrator Management
 
@@ -159,7 +161,7 @@ The principal attendance view is a chronological attendance matrix designed for 
 
 | Entity | Purpose | Key functional information |
 | --- | --- | --- |
-| Club | Club configuration | Name, announcement |
+| Club | Club configuration | Name, announcement, color theme, logo |
 | Recurring Schedule | Weekly pattern | Day, time, timezone, duration, location, minimum participants |
 | Member | Club identity | Name, personal link, optional Google identity, player/admin roles |
 | Session | Concrete event | Date/time, duration, location, optional minimum override, planned/cancelled, cancellation reason, regular/exceptional |
@@ -168,7 +170,7 @@ The principal attendance view is a chronological attendance matrix designed for 
 
 ### Draft Supabase Schema
 
-Each club deployment contains one club configuration. Google sign-in matches member records by their verified Google email; Supabase Auth is not used.
+Each club deployment contains one club configuration. Google sign-in (Supabase Auth Google provider) matches member records by their Google email.
 
 ```mermaid
 erDiagram
@@ -176,6 +178,8 @@ erDiagram
 		uuid id PK
 		text name
 		text banner_message
+		jsonb theme
+		text logo_path
 	}
 
 	MEMBERS {

@@ -16,6 +16,8 @@ For local development, set `VITE_DEFAULT_INSTANCE` in `.env` or use `?instance=l
 
 The frontend reads the club name and banner message from that instance's `clubs` table.
 
+Club branding also lives in each Supabase project, not in this repository: colors in `clubs.theme`, and the logo as a file in the public `branding` storage bucket referenced by `clubs.logo_path`. Upload the logo under **Storage → branding** in the Supabase dashboard.
+
 ## Database Migrations
 
 Each club has a separate Supabase project and migration directory under `instances/<club>/supabase/`. Connect the Supabase GitHub integration for each project to this repository and set its working directory to `instances/<club>`.
