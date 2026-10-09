@@ -243,6 +243,8 @@ The application should enforce one club configuration per deployment, unique ver
 - The La Manchette schema seeds a Saturday 10:00 two-hour schedule in `Europe/Brussels` at Centre sportif de Blocry, an eight-player minimum, and Maximilian Barais (`mikebarais@gmail.com`) as an administrator-only member.
 - Each recurring schedule stores its own IANA timezone; generated session timestamps use the timezone of their schedule pattern.
 - Row-level security is enabled on all tables. The anonymous role can read club branding from `clubs`; the other tables have no anonymous access policies.
+- Visiting `/p/<personal_link>` keeps the link in the address bar. The `session` Edge Function verifies the link and returns a one-hour token identifying the member; the browser renews it from the link as needed. Anyone holding the link authenticates as that member.
+- With that token, row-level security lets a member read only their own `members` row.
 - The consolidated migration is for a fresh database. Recreating La Manchette from it requires dropping the existing schema and resetting Supabase migration history; back up any data that needs to be kept first.
 
 ## 18. Explicitly Removed from the Final Design

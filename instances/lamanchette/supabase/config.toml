@@ -1,1 +1,4 @@
 project_id = "playcount-lamanchette"
+
+[functions.session]
+verify_jwt = false

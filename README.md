@@ -18,6 +18,14 @@ The frontend reads the club name and banner message from that instance's `clubs`
 
 Each club has a separate Supabase project and migration directory under `instances/<club>/supabase/`. Connect the Supabase GitHub integration for each project to this repository and set its working directory to `instances/<club>`.
 
+## Personal-Link Sessions
+
+Visiting `/p/<personal_link>` calls the club's `session` Edge Function, which exchanges the link for a one-hour token that the database accepts as that member. The function is deployed by the GitHub integration from `instances/<club>/supabase/functions/session/` and needs a signing key per Supabase project:
+
+1. Run `npx supabase gen signing-key --algorithm ES256`. Keep the output private and out of the repository.
+2. In the Supabase dashboard, open **Project Settings → JWT Keys**, create a standby key by importing that private key, then click **Rotate keys** so the database accepts tokens it signs.
+3. Under **Edge Functions → Secrets**, add `PLAYCOUNT_JWT_PRIVATE_KEY` containing the same private key JSON.
+
 ## Local preview
 
 Copy `.env.example` to `.env` and set `VITE_DEFAULT_INSTANCE` to the slug whose JSON file you want to load. Run `npm install`, then `npm run dev`. Create the production bundle with `npm run build`.

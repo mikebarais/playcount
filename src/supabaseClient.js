@@ -16,7 +16,7 @@ export function getInstanceSlug(hostname = window.location.hostname) {
   return slug;
 }
 
-export async function createSupabaseClientForInstance(slug) {
+export async function loadInstanceConfig(slug) {
   const response = await fetch(`/instances/${encodeURIComponent(slug)}.json`, {
     headers: { Accept: 'application/json' },
   });
@@ -26,12 +26,42 @@ export async function createSupabaseClientForInstance(slug) {
   }
 
   const config = await response.json();
-  const supabaseUrl = config.supabaseUrl;
-  const publishableKey = config.publishableKey;
 
-  if (!supabaseUrl || !publishableKey) {
+  if (!config.supabaseUrl || !config.publishableKey) {
     throw new Error(`Supabase configuration for instance "${slug}" is incomplete.`);
   }
 
-  return createClient(supabaseUrl, publishableKey);
+  return config;
+}
+
+export function createPublicClient(config) {
+  return createClient(config.supabaseUrl, config.publishableKey);
+}
+
+export async function createMemberClient(config, personalLink) {
+  const publicClient = createPublicClient(config);
+  let session = null;
+
+  async function getAccessToken() {
+    // Renew a minute early so in-flight requests never carry an expired token.
+    if (!session || session.expiresAt - 60 <= Date.now() / 1000) {
+      const { data, error } = await publicClient.functions.invoke('session', {
+        body: { personalLink },
+      });
+
+      if (error || !data?.accessToken) {
+        throw new Error('The personal link is not recognized.');
+      }
+
+      session = data;
+    }
+
+    return session.accessToken;
+  }
+
+  await getAccessToken();
+
+  return createClient(config.supabaseUrl, config.publishableKey, {
+    accessToken: getAccessToken,
+  });
 }

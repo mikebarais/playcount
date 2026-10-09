@@ -1,9 +1,29 @@
 import { useEffect, useState } from 'react';
-import { createSupabaseClientForInstance, getInstanceSlug } from './supabaseClient';
+import {
+  createMemberClient,
+  createPublicClient,
+  getInstanceSlug,
+  loadInstanceConfig,
+} from './supabaseClient';
 import './App.css';
+
+const personalLinkPattern = /^\/p\/([^/]+)\/?$/;
+
+function getPersonalLink(pathname = window.location.pathname) {
+  const match = pathname.match(personalLinkPattern);
+  if (!match) return null;
+
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
 
 export default function App() {
   const [club, setClub] = useState(null);
+  const [memberName, setMemberName] = useState(null);
+  const [unknownLink, setUnknownLink] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -12,8 +32,8 @@ export default function App() {
 
     async function loadClub() {
       try {
-        const instanceSlug = getInstanceSlug();
-        const supabase = await createSupabaseClientForInstance(instanceSlug);
+        const config = await loadInstanceConfig(getInstanceSlug());
+        const supabase = createPublicClient(config);
         const { data, error } = await supabase
           .from('clubs')
           .select('name, banner_message')
@@ -26,6 +46,23 @@ export default function App() {
 
         setClub(data);
         document.title = data.name;
+
+        const personalLink = getPersonalLink();
+        if (personalLink) {
+          try {
+            const memberClient = await createMemberClient(config, personalLink);
+            const { data: member, error: memberError } = await memberClient
+              .from('members')
+              .select('name')
+              .single();
+
+            if (memberError) throw memberError;
+            if (isMounted) setMemberName(member.name);
+          } catch (memberError) {
+            console.error('Unable to sign in with the personal link:', memberError);
+            if (isMounted) setUnknownLink(true);
+          }
+        }
       } catch (error) {
         console.error('Unable to load club branding:', error);
         if (isMounted) setLoadError(true);
@@ -57,6 +94,8 @@ export default function App() {
           {club.banner_message && <p className="banner-message">{club.banner_message}</p>}
           <h1 id="club-title">{club.name}</h1>
           <div className="banner-rule" aria-hidden="true" />
+          {memberName && <p className="member-greeting">Hello, {memberName}</p>}
+          {unknownLink && <p className="member-greeting" role="alert">This personal link is not recognized.</p>}
         </div>
       </section>
     </main>
