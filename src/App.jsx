@@ -7,7 +7,7 @@ import {
   loadInstanceConfig,
   signInWithGoogle,
 } from './supabaseClient';
-import SessionList from './SessionList';
+import AttendanceMatrix from './AttendanceMatrix';
 import './App.css';
 
 const personalLinkPattern = /^\/p\/([^/]+)\/?$/;
@@ -36,7 +36,7 @@ function getPersonalLink(pathname = window.location.pathname) {
   }
 }
 
-async function loadUpcomingSessions(memberClient) {
+async function loadAttendanceBoard(memberClient) {
   const { error: generateError } = await memberClient.rpc('ensure_upcoming_sessions');
   if (generateError) throw generateError;
 
@@ -45,7 +45,7 @@ async function loadUpcomingSessions(memberClient) {
   const windowEnd = new Date(windowStart);
   windowEnd.setDate(windowEnd.getDate() + sessionWindowDays);
 
-  const { data, error } = await memberClient
+  const { data: sessions, error } = await memberClient
     .from('sessions')
     .select('id, starts_at, duration, location, event_name, event_type, status, cancellation_reason')
     .gte('starts_at', windowStart.toISOString())
@@ -54,14 +54,28 @@ async function loadUpcomingSessions(memberClient) {
     .limit(maxSessions);
 
   if (error) throw error;
-  return data;
+
+  const sessionIds = sessions.map((session) => session.id);
+  const [players, attendances, guests] = await Promise.all([
+    memberClient.rpc('club_players'),
+    memberClient.from('attendances').select('session_id, member_id, status').in('session_id', sessionIds),
+    memberClient.from('exceptional_players').select('id, session_id, name').in('session_id', sessionIds).order('name'),
+  ]);
+
+  for (const result of [players, attendances, guests]) {
+    if (result.error) throw result.error;
+  }
+
+  return { sessions, players: players.data, attendances: attendances.data, guests: guests.data };
 }
 
 export default function App() {
   const [club, setClub] = useState(null);
   const [memberName, setMemberName] = useState(null);
-  const [sessions, setSessions] = useState(null);
+  const [member, setMember] = useState(null);
+  const [board, setBoard] = useState(null);
   const [sessionsError, setSessionsError] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [authClient, setAuthClient] = useState(null);
   const [unregisteredEmail, setUnregisteredEmail] = useState(null);
   const [signInFailed, setSignInFailed] = useState(false);
@@ -95,12 +109,13 @@ export default function App() {
         applyTheme(data.theme);
         document.title = data.name;
 
-        async function showMember(memberClient, name) {
+        async function showMember(memberClient, row) {
           if (!isMounted) return;
-          setMemberName(name);
+          setMemberName(row.name);
+          setMember({ id: row.id, client: memberClient });
           try {
-            const upcoming = await loadUpcomingSessions(memberClient);
-            if (isMounted) setSessions(upcoming);
+            const loadedBoard = await loadAttendanceBoard(memberClient);
+            if (isMounted) setBoard(loadedBoard);
           } catch (sessionsLoadError) {
             console.error('Unable to load sessions:', sessionsLoadError);
             if (isMounted) setSessionsError(true);
@@ -115,7 +130,7 @@ export default function App() {
             memberClient = await createMemberClient(config, personalLink);
             const { data: row, error: memberError } = await memberClient
               .from('members')
-              .select('name')
+              .select('id, name')
               .single();
 
             if (memberError) throw memberError;
@@ -126,7 +141,7 @@ export default function App() {
           }
 
           if (member) {
-            await showMember(memberClient, member.name);
+            await showMember(memberClient, member);
             return;
           }
         }
@@ -136,7 +151,7 @@ export default function App() {
 
         const { data: member, error: memberError } = await supabase
           .from('members')
-          .select('name, personal_link')
+          .select('id, name, personal_link')
           .maybeSingle();
 
         if (memberError) throw memberError;
@@ -145,7 +160,7 @@ export default function App() {
         if (member) {
           window.history.replaceState(null, '', getPersonalPagePath(member.personal_link));
           // Session data is accessed with the member's own identity, as with a personal link.
-          await showMember(await createMemberClient(config, member.personal_link), member.name);
+          await showMember(await createMemberClient(config, member.personal_link), member);
         } else {
           setUnregisteredEmail(session.user.email);
         }
@@ -176,6 +191,38 @@ export default function App() {
   async function handleSignOut() {
     await authClient.auth.signOut();
     setUnregisteredEmail(null);
+  }
+
+  function setOwnAttendance(sessionId, status) {
+    setBoard((current) => ({
+      ...current,
+      attendances: [
+        ...current.attendances.filter(
+          (attendance) => !(attendance.session_id === sessionId && attendance.member_id === member.id),
+        ),
+        { session_id: sessionId, member_id: member.id, status },
+      ],
+    }));
+  }
+
+  async function handleToggle(sessionId, isPresent) {
+    const previous = board.attendances.find(
+      (attendance) => attendance.session_id === sessionId && attendance.member_id === member.id,
+    );
+    const status = isPresent ? 'Présent' : 'Absent';
+
+    setSaveFailed(false);
+    setOwnAttendance(sessionId, status);
+
+    const { error } = await member.client
+      .from('attendances')
+      .upsert({ session_id: sessionId, member_id: member.id, status });
+
+    if (error) {
+      console.error('Unable to save attendance:', error);
+      setOwnAttendance(sessionId, previous?.status ?? null);
+      setSaveFailed(true);
+    }
   }
 
   if (loading) {
@@ -224,8 +271,9 @@ export default function App() {
         <section className="sessions" aria-labelledby="sessions-title">
           <h2 id="sessions-title">Upcoming sessions</h2>
           {sessionsError && <p role="alert">Sessions are unavailable.</p>}
-          {!sessionsError && !sessions && <p role="status">Loading sessions</p>}
-          {sessions && <SessionList sessions={sessions} />}
+          {saveFailed && <p role="alert">Your attendance could not be saved.</p>}
+          {!sessionsError && !board && <p role="status">Loading sessions</p>}
+          {board && <AttendanceMatrix board={board} memberId={member.id} onToggle={handleToggle} />}
         </section>
       )}
     </main>

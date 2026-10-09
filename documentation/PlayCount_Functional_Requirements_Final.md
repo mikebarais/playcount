@@ -93,6 +93,7 @@ Each club uses its own application deployment and Supabase project.
 - The player's response is associated with the specific session.
 - A player cannot add guests to their response.
 - Attendance information is visible in the session attendance view.
+- The current interface uses a checkbox per session: checked stores Présent, unchecked stores Absent. Incertain is not yet selectable.
 
 ## 9. Exceptional Participants / Guests
 
@@ -118,6 +119,8 @@ The principal attendance view is a chronological attendance matrix designed for 
 
 - Columns represent sessions/events, sorted by date from earliest to latest.
 - The session columns can be scrolled horizontally.
+- The player name column stays fixed while scrolling; on any screen width at least the names and one session column are visible.
+- Each player can edit only their own cells; all other cells, and cells of cancelled sessions, are read-only.
 - When the page opens, horizontal scrolling is positioned on the next upcoming session.
 - Rows represent registered players.
 - Each player/session cell displays the player's current attendance status.
@@ -253,7 +256,7 @@ The application should enforce one club configuration per deployment, unique ver
 - Each recurring schedule stores its own IANA timezone; generated session timestamps use the timezone of their schedule pattern.
 - Row-level security is enabled on all tables. The anonymous role can read club branding from `clubs`; the other tables have no anonymous access policies.
 - Visiting `/p/<personal_link>` keeps the link in the address bar. The `session` Edge Function verifies the link and returns a one-hour token identifying the member; the browser renews it from the link as needed. Anyone holding the link authenticates as that member.
-- With that token, row-level security lets a member read only their own `members` row, plus the club's schedule patterns and sessions.
+- With that token, row-level security lets a member read only their own `members` row, plus the club's schedule patterns, sessions, attendances, and exceptional players. A player can insert and update only their own attendance rows. Other players' names are available through the `club_players()` function, which never exposes personal links.
 - After Google sign-in, the frontend exchanges the member's personal link for the same token, so both sign-in methods access data as the same member.
 - Members cannot insert sessions directly. The `ensure_upcoming_sessions()` database function, callable only by members, creates missing pattern sessions idempotently.
 - The consolidated migration is for a fresh database. Recreating La Manchette from it requires dropping the existing schema and resetting Supabase migration history; back up any data that needs to be kept first.
