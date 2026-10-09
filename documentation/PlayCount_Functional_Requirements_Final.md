@@ -111,7 +111,7 @@ Each club uses its own application deployment and Supabase project.
 - Each recurring schedule pattern has its own configurable minimum number of participants.
 - A session uses its schedule pattern's minimum unless a session-specific minimum is set. An exceptional session without a recurring pattern must define its own minimum.
 - The application calculates the total confirmed participants for a session from registered players marked present plus exceptional participants added by the administrator.
-- The session header displays the current participant count against the effective minimum (session override, or schedule-pattern minimum), and states whether the minimum is met or how many more participants are needed.
+- A footer row below the player and guest rows displays each session's current participant count against its effective minimum (session override, or schedule-pattern minimum), and states whether the minimum is met or how many more participants are needed.
 
 ## 11. Main Attendance Interface
 

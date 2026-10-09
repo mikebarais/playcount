@@ -49,12 +49,6 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
               const endsAt = addInterval(startsAt, session.duration);
               const cancelled = session.status === 'cancelled';
               const title = session.event_name || session.event_type;
-              const minimum = session.min_players ?? session.schedule_patterns?.min_players;
-              const participantCount = participantCounts.get(session.id);
-              const minimumReached = Number.isInteger(minimum) && participantCount >= minimum;
-              const thresholdLabel = Number.isInteger(minimum)
-                ? minimumReached ? 'Minimum met' : `${minimum - participantCount} needed`
-                : 'Minimum not set';
 
               return (
                 <th
@@ -69,12 +63,7 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
                     {endsAt && `–${timeFormat.format(endsAt)}`}
                   </span>
                   {title && <span className="session-title">{title}</span>}
-                  <span className={minimumReached ? 'session-count is-met' : 'session-count is-under'}>
-                    {participantCount} / {minimum ?? '?'} players
-                  </span>
-                  <span className={minimumReached ? 'session-threshold is-met' : 'session-threshold is-under'}>
-                    {thresholdLabel}
-                  </span>
+                  <span className="session-location">{session.location}</span>
                   {cancelled && (
                     <span className="session-status">
                       Cancelled{session.cancellation_reason && `: ${session.cancellation_reason}`}
@@ -131,6 +120,30 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr className="matrix-total">
+            <th scope="row">Total present</th>
+            {sessions.map((session) => {
+              const minimum = session.min_players ?? session.schedule_patterns?.min_players;
+              const participantCount = participantCounts.get(session.id);
+              const minimumReached = Number.isInteger(minimum) && participantCount >= minimum;
+              const thresholdLabel = Number.isInteger(minimum)
+                ? minimumReached ? 'Minimum met' : `${minimum - participantCount} needed`
+                : 'Minimum not set';
+
+              return (
+                <td key={session.id}>
+                  <span className={minimumReached ? 'session-count is-met' : 'session-count is-under'}>
+                    {participantCount} / {minimum ?? '?'} players
+                  </span>
+                  <span className={minimumReached ? 'session-threshold is-met' : 'session-threshold is-under'}>
+                    {thresholdLabel}
+                  </span>
+                </td>
+              );
+            })}
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

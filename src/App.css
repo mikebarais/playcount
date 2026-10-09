@@ -89,6 +89,7 @@ body {
 
 /* Narrow enough that the name column plus one session fit on a 320px screen. */
 .attendance-matrix tbody th,
+.attendance-matrix tfoot th,
 .matrix-corner {
   position: sticky;
   left: 0;
@@ -136,6 +137,13 @@ body {
   font-size: 13px;
 }
 
+.session-location {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
 .session-count {
   margin-top: 6px;
   font-size: 13px;
@@ -162,6 +170,23 @@ body {
 
 .session-threshold.is-under {
   color: var(--color-rule);
+}
+
+.matrix-total th,
+.matrix-total td {
+  border-top: 2px solid var(--color-shape);
+  border-bottom: 0;
+  background: var(--color-banner);
+  text-align: center;
+  vertical-align: top;
+}
+
+.matrix-total th {
+  text-align: left;
+}
+
+.matrix-total td span {
+  display: block;
 }
 
 .session-cancelled {
