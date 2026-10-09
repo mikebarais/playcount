@@ -305,6 +305,42 @@ body {
   background: var(--color-accent);
 }
 
+.google-sign-in-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #747775;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f1f1f;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.google-sign-in-button:hover {
+  border-color: #5f6368;
+  background: #f8faff;
+  box-shadow: 0 1px 2px rgb(60 64 67 / 30%);
+}
+
+.google-sign-in-button:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 2px;
+  background: #f8faff;
+}
+
+.google-mark {
+  display: block;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+}
+
 .club-logo {
   position: absolute;
   z-index: 2;
@@ -769,5 +805,92 @@ body {
     right: 12px;
     width: 52px;
     height: 52px;
+  }
+}
+
+.club-banner-login {
+  min-height: min(44svh, 400px);
+  align-items: center;
+}
+
+.club-banner-login .banner-content {
+  padding: 44px 144px 44px 8%;
+}
+
+.club-banner-login .banner-message {
+  margin-bottom: 14px;
+}
+
+.club-banner-login h1 {
+  font-size: 68px;
+}
+
+.club-banner-login .banner-rule {
+  margin-top: 20px;
+}
+
+.club-banner-login .sign-in {
+  margin-top: 20px;
+}
+
+.club-banner-login .club-logo {
+  top: 50%;
+  right: 28px;
+  width: 96px;
+  height: 96px;
+  transform: translateY(-50%);
+}
+
+@media (max-width: 700px) {
+  .club-banner-login {
+    min-height: 0;
+    align-items: flex-start;
+  }
+
+  .club-banner-login .banner-content {
+    padding: 92px 20px 24px;
+  }
+
+  .club-banner-login h1 {
+    max-width: 100%;
+    font-size: 34px;
+    line-height: 0.95;
+    overflow-wrap: anywhere;
+  }
+
+  .club-banner-login .banner-rule {
+    width: 56px;
+    height: 5px;
+    margin-top: 14px;
+  }
+
+  .club-banner-login .sign-in {
+    margin-top: 16px;
+  }
+
+  .club-banner-login .sign-in-button {
+    max-width: 100%;
+    padding: 11px 14px;
+    white-space: normal;
+  }
+
+  .club-banner-login .google-sign-in-button {
+    min-height: 40px;
+    padding: 0 12px;
+  }
+
+  .club-banner-login .club-logo {
+    top: 16px;
+    right: 18px;
+    width: 60px;
+    height: 60px;
+    transform: none;
+  }
+
+  .club-banner-login .banner-shape {
+    top: -14%;
+    right: -18%;
+    width: 58%;
+    height: 46%;
   }
 }
