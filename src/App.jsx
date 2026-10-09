@@ -294,12 +294,16 @@ export default function App() {
           <AdminPanel
             client={member.client}
             currentMemberId={member.id}
-            onBack={() => setActiveArea('attendance')}
           />
         ) : <section className="sessions" aria-labelledby="sessions-title">
           <h2 id="sessions-title">Upcoming sessions</h2>
           {sessionsError && <p role="alert">Sessions are unavailable.</p>}
-          {saveFailed && <p role="alert">Your attendance could not be saved.</p>}
+          {saveFailed && (
+            <div role="alert">
+              <p>Your attendance could not be saved. Reload the page to get a fresh session, then try again.</p>
+              <button type="button" onClick={() => window.location.reload()}>Reload page</button>
+            </div>
+          )}
           {!sessionsError && !board && <p role="status">Loading sessions</p>}
           {board && <AttendanceMatrix board={board} memberId={member.id} onToggle={handleToggle} />}
         </section>

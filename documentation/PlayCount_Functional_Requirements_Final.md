@@ -163,7 +163,7 @@ The principal attendance view is a chronological attendance matrix designed for 
 - An administrator can create a member with a name, optional Google email, and player/admin roles; the database generates a unique UUID personal link.
 - An administrator can view the member list and copy personal links, edit a member's name, email, and roles, regenerate a member's link, and deactivate or reactivate a member.
 - Every member change is staged and requires explicit confirmation before it is sent to the database.
-- Regenerating a link invalidates it for future session creation and renewal; already-issued sessions remain valid until expiry.
+- Regenerating a link blocks future personal-link exchanges; already-issued sessions remain valid until their one-hour expiry.
 - Deactivation blocks new personal-link sessions and member data access while preserving historical attendance. An administrator cannot deactivate themself, remove their own admin role, or remove the last active administrator.
 - A Google identity/email can optionally be associated with a member profile for Google sign-in.
 - Administrators have elevated permissions for their club only.
@@ -262,7 +262,7 @@ The application should enforce one club configuration per deployment, unique ver
 - The La Manchette schema seeds a Saturday 10:00 two-hour schedule in `Europe/Brussels` at Centre sportif de Blocry, an eight-player minimum, and Maximilian Barais (`mikebarais@gmail.com`) as an administrator-only member.
 - Each recurring schedule stores its own IANA timezone; generated session timestamps use the timezone of their schedule pattern.
 - Row-level security is enabled on all tables. The anonymous role can read club branding from `clubs`; the other tables have no anonymous access policies.
-- Visiting `/p/<personal_link>` keeps the link in the address bar. The `session` Edge Function verifies the link and returns a one-hour token identifying the member; the browser renews it from the link as needed. Anyone holding the link authenticates as that member.
+- Visiting `/p/<personal_link>` keeps the link in the address bar. The `session` Edge Function verifies the link and returns a one-hour token identifying the member once per page load. Tokens are not renewed automatically; reloading the page exchanges the link for a fresh token and reloads attendance data. Anyone holding the link authenticates as that member.
 - With that token, row-level security lets a member read only their own `members` row, plus the club's schedule patterns, sessions, attendances, and exceptional players. A player can insert and update only their own attendance rows. Other players' names are available through the `club_players()` function, which never exposes personal links.
 - Admin member operations use separate `admin_*` database functions that verify the caller's active administrator row and club. Only those functions return personal links or mutate member records.
 - Deactivated members cannot exchange a personal link for a new session token; active-member checks block their existing token from club data access.

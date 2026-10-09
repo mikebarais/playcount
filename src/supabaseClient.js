@@ -61,28 +61,15 @@ export function getPersonalPagePath(personalLink) {
 
 export async function createMemberClient(config, personalLink) {
   const anonClient = createPublicClient(config);
-  let session = null;
+  const { data, error } = await anonClient.functions.invoke('session', {
+    body: { personalLink },
+  });
 
-  async function getAccessToken() {
-    // Renew a minute early so in-flight requests never carry an expired token.
-    if (!session || session.expiresAt - 60 <= Date.now() / 1000) {
-      const { data, error } = await anonClient.functions.invoke('session', {
-        body: { personalLink },
-      });
-
-      if (error || !data?.accessToken) {
-        throw new Error('The personal link is not recognized.');
-      }
-
-      session = data;
-    }
-
-    return session.accessToken;
+  if (error || !data?.accessToken) {
+    throw new Error('The personal link is not recognized.');
   }
 
-  await getAccessToken();
-
   return createClient(config.supabaseUrl, config.publishableKey, {
-    accessToken: getAccessToken,
+    accessToken: async () => data.accessToken,
   });
 }

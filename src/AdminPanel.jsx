@@ -34,7 +34,7 @@ function getSaveSummary(pending) {
     .map(([label, value, previous]) => ({ label, value, previous }));
 }
 
-export default function AdminPanel({ client, currentMemberId, onBack }) {
+export default function AdminPanel({ client, currentMemberId }) {
   const [members, setMembers] = useState([]);
   const [mode, setMode] = useState('list');
   const [draft, setDraft] = useState(null);
@@ -211,9 +211,6 @@ export default function AdminPanel({ client, currentMemberId, onBack }) {
           <p className="admin-eyebrow">Administration</p>
           <h2 id="admin-title">Members</h2>
         </div>
-        <button className="admin-secondary-button" type="button" onClick={onBack}>
-          Back to attendance
-        </button>
       </header>
 
       {error && <p className="admin-alert" role="alert">{error}</p>}
