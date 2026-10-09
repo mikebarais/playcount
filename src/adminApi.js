@@ -34,9 +34,8 @@ export async function regenerateMemberLink(client, memberId) {
   });
 }
 
-export async function setMemberActive(client, memberId, isActive) {
-  await invokeAdmin(client, 'admin_set_member_active', {
+export async function deleteMember(client, memberId) {
+  await invokeAdmin(client, 'admin_delete_member', {
     p_member_id: memberId,
-    p_is_active: isActive,
   });
 }

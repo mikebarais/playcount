@@ -419,11 +419,6 @@ body {
   background: var(--color-banner);
 }
 
-.admin-member.is-inactive {
-  border-left-color: var(--color-rule);
-  opacity: 0.72;
-}
-
 .admin-member-info {
   min-width: 0;
 }

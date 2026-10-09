@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   createMember,
+  deleteMember,
   listMembers,
   regenerateMemberLink,
-  setMemberActive,
   updateMember,
 } from './adminApi';
 import { getPersonalPagePath } from './supabaseClient';
@@ -120,7 +120,7 @@ export default function AdminPanel({ client, currentMemberId }) {
     setMode('confirm');
   }
 
-  function stageAction(kind, member, isActive) {
+  function stageAction(kind, member) {
     setError('');
     setMessage('');
     setCreatedLink(null);
@@ -171,12 +171,12 @@ export default function AdminPanel({ client, currentMemberId }) {
             : member
         )));
         setCreatedLink(newLink);
-        setMessage(`Personal link regenerated for ${pending.member.name}. The previous link will fail on its next session or renewal; sessions already issued remain valid for up to one hour.`);
+        setMessage(`Personal link regenerated for ${pending.member.name}. The old link cannot start another session; tokens already issued can remain valid for up to one hour.`);
         setPending(null);
         setMode('list');
-      } else if (pending.kind === 'active') {
-        await setMemberActive(client, pending.member.member_id, pending.isActive);
-        setMessage(`${pending.member.name} ${pending.isActive ? 'reactivated' : 'deactivated'}.`);
+      } else if (pending.kind === 'delete') {
+        await deleteMember(client, pending.member.member_id);
+        setMessage(`${pending.member.name} deleted. Their attendance history was also deleted.`);
         setPending(null);
         setMode('list');
         try {
@@ -202,7 +202,7 @@ export default function AdminPanel({ client, currentMemberId }) {
   const isSave = pending?.kind === 'save';
   const confirmationTitle = isSave
     ? pending.original ? 'Confirm member changes' : 'Confirm new member'
-    : pending?.kind === 'regenerate' ? 'Regenerate personal link' : 'Confirm member status';
+    : pending?.kind === 'regenerate' ? 'Regenerate personal link' : 'Delete member';
 
   return (
     <section className="admin-panel" aria-labelledby="admin-title">
@@ -241,19 +241,17 @@ export default function AdminPanel({ client, currentMemberId }) {
               {members.map((memberRow) => {
                 const isCurrent = memberRow.member_id === currentMemberId;
                 return (
-                  <li className={memberRow.is_active ? 'admin-member' : 'admin-member is-inactive'} key={memberRow.member_id}>
+                  <li className="admin-member" key={memberRow.member_id}>
                     <div className="admin-member-info">
                       <h3>{memberRow.name}{isCurrent && <span className="admin-you">You</span>}</h3>
                       <p>{memberRow.google_email || 'No Google email'}</p>
                       <div className="admin-member-meta">
                         <span>{roleNames({ isPlayer: memberRow.is_player, isAdmin: memberRow.is_admin }) || 'No role'}</span>
-                        <span>{memberRow.is_active ? 'Active' : 'Deactivated'}</span>
                       </div>
                     </div>
                     <div className="admin-member-actions">
                       <button
                         type="button"
-                        disabled={!memberRow.is_active}
                         onClick={() => copyLink(memberRow.personal_link, memberRow.name)}
                       >
                         Copy link
@@ -269,12 +267,12 @@ export default function AdminPanel({ client, currentMemberId }) {
                       </button>
                       <button
                         type="button"
-                        className={memberRow.is_active ? 'admin-danger-button' : ''}
+                        className="admin-danger-button"
                         disabled={isCurrent}
-                        title={isCurrent ? 'You cannot change your own account status.' : undefined}
-                        onClick={() => stageAction('active', memberRow, !memberRow.is_active)}
+                        title={isCurrent ? 'You cannot delete your own account.' : undefined}
+                        onClick={() => stageAction('delete', memberRow)}
                       >
-                        {memberRow.is_active ? 'Deactivate' : 'Reactivate'}
+                        Delete
                       </button>
                     </div>
                   </li>
@@ -352,13 +350,11 @@ export default function AdminPanel({ client, currentMemberId }) {
               </dl>
             )}
             {pending.kind === 'regenerate' && (
-              <p>The existing personal link for <strong>{pending.member.name}</strong> will stop working immediately. A new UUID link will be generated.</p>
+              <p>The old link will no longer start a session. Tokens already issued can remain valid for up to one hour. A new UUID link will be generated for <strong>{pending.member.name}</strong>.</p>
             )}
-            {pending.kind === 'active' && (
+            {pending.kind === 'delete' && (
               <p>
-                {pending.isActive
-                  ? `Reactivate ${pending.member.name}? They will be able to sign in and edit attendance again.`
-                  : `Deactivate ${pending.member.name}? They will lose sign-in and attendance access. Historical attendance will be kept.`}
+                Permanently delete <strong>{pending.member.name}</strong>? Their attendance responses will also be deleted. This cannot be undone. Their Google account, if any, is not deleted.
               </p>
             )}
             {error && <p className="admin-alert" role="alert">{error}</p>}
@@ -367,7 +363,7 @@ export default function AdminPanel({ client, currentMemberId }) {
                 Cancel
               </button>
               <button className="admin-primary-button" type="button" disabled={busy} onClick={confirmPending}>
-                {busy ? 'Saving…' : isSave ? 'Confirm and save' : pending.kind === 'regenerate' ? 'Confirm regeneration' : pending.isActive ? 'Confirm reactivation' : 'Confirm deactivation'}
+                {busy ? 'Saving…' : isSave ? 'Confirm and save' : pending.kind === 'regenerate' ? 'Confirm regeneration' : 'Confirm deletion'}
               </button>
             </div>
           </section>

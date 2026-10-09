@@ -90,7 +90,7 @@ async function createSession(request: Request) {
   const signing = await getSigner();
   const { data: member, error } = await getDatabase()
     .from('members')
-    .select('id, is_active')
+    .select('id')
     .eq('personal_link', personalLink)
     .maybeSingle();
 
@@ -98,7 +98,7 @@ async function createSession(request: Request) {
     console.error('Member lookup failed:', error);
     return json({ error: 'Unable to verify the personal link.' }, 500);
   }
-  if (!member || !member.is_active) return json({ error: 'Personal link is not recognized.' }, 401);
+  if (!member) return json({ error: 'Personal link is not recognized.' }, 401);
 
   const expiresAt = Math.floor(Date.now() / 1000) + sessionSeconds;
   const accessToken = await new SignJWT({ role: 'authenticated' })
