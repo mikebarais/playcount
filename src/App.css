@@ -136,6 +136,34 @@ body {
   font-size: 13px;
 }
 
+.session-count {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.session-count.is-met {
+  color: var(--color-accent);
+}
+
+.session-count.is-under {
+  color: var(--color-text);
+}
+
+.session-threshold {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.session-threshold.is-met {
+  color: var(--color-accent);
+}
+
+.session-threshold.is-under {
+  color: var(--color-rule);
+}
+
 .session-cancelled {
   border-top-color: var(--color-rule);
   opacity: 0.6;

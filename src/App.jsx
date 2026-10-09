@@ -48,7 +48,7 @@ async function loadAttendanceBoard(memberClient) {
 
   const { data: sessions, error } = await memberClient
     .from('sessions')
-    .select('id, starts_at, duration, location, event_name, event_type, status, cancellation_reason')
+    .select('id, starts_at, duration, location, event_name, event_type, status, cancellation_reason, min_players, schedule_patterns(min_players)')
     .gte('starts_at', windowStart.toISOString())
     .lt('starts_at', windowEnd.toISOString())
     .order('starts_at')

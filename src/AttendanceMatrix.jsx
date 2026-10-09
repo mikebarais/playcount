@@ -26,6 +26,17 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
       .filter((attendance) => attendance.status === 'present')
       .map((attendance) => `${attendance.session_id}:${attendance.member_id}`),
   );
+  const participantCounts = new Map(sessions.map((session) => [session.id, 0]));
+
+  for (const attendance of attendances) {
+    if (attendance.status === 'present') {
+      participantCounts.set(attendance.session_id, participantCounts.get(attendance.session_id) + 1);
+    }
+  }
+
+  for (const guest of guests) {
+    participantCounts.set(guest.session_id, participantCounts.get(guest.session_id) + 1);
+  }
 
   return (
     <div className="matrix-scroll">
@@ -38,6 +49,12 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
               const endsAt = addInterval(startsAt, session.duration);
               const cancelled = session.status === 'cancelled';
               const title = session.event_name || session.event_type;
+              const minimum = session.min_players ?? session.schedule_patterns?.min_players;
+              const participantCount = participantCounts.get(session.id);
+              const minimumReached = Number.isInteger(minimum) && participantCount >= minimum;
+              const thresholdLabel = Number.isInteger(minimum)
+                ? minimumReached ? 'Minimum met' : `${minimum - participantCount} needed`
+                : 'Minimum not set';
 
               return (
                 <th
@@ -52,6 +69,12 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
                     {endsAt && `–${timeFormat.format(endsAt)}`}
                   </span>
                   {title && <span className="session-title">{title}</span>}
+                  <span className={minimumReached ? 'session-count is-met' : 'session-count is-under'}>
+                    {participantCount} / {minimum ?? '?'} players
+                  </span>
+                  <span className={minimumReached ? 'session-threshold is-met' : 'session-threshold is-under'}>
+                    {thresholdLabel}
+                  </span>
                   {cancelled && (
                     <span className="session-status">
                       Cancelled{session.cancellation_reason && `: ${session.cancellation_reason}`}
