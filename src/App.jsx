@@ -7,6 +7,7 @@ import {
   loadInstanceConfig,
   signInWithGoogle,
 } from './supabaseClient';
+import AdminPanel from './AdminPanel';
 import AttendanceMatrix from './AttendanceMatrix';
 import './App.css';
 
@@ -73,6 +74,7 @@ export default function App() {
   const [club, setClub] = useState(null);
   const [memberName, setMemberName] = useState(null);
   const [member, setMember] = useState(null);
+  const [activeArea, setActiveArea] = useState('attendance');
   const [board, setBoard] = useState(null);
   const [sessionsError, setSessionsError] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -112,7 +114,7 @@ export default function App() {
         async function showMember(memberClient, row) {
           if (!isMounted) return;
           setMemberName(row.name);
-          setMember({ id: row.id, client: memberClient });
+          setMember({ id: row.id, client: memberClient, isAdmin: row.is_admin });
           try {
             const loadedBoard = await loadAttendanceBoard(memberClient);
             if (isMounted) setBoard(loadedBoard);
@@ -130,7 +132,7 @@ export default function App() {
             memberClient = await createMemberClient(config, personalLink);
             const { data: row, error: memberError } = await memberClient
               .from('members')
-              .select('id, name')
+              .select('id, name, is_admin')
               .single();
 
             if (memberError) throw memberError;
@@ -151,7 +153,7 @@ export default function App() {
 
         const { data: member, error: memberError } = await supabase
           .from('members')
-          .select('id, name, personal_link')
+          .select('id, name, personal_link, is_admin')
           .maybeSingle();
 
         if (memberError) throw memberError;
@@ -267,8 +269,34 @@ export default function App() {
           )}
         </div>
       </section>
+      {member?.isAdmin && (
+        <nav className="area-tiles" aria-label="Member areas">
+          <button
+            type="button"
+            className={activeArea === 'attendance' ? 'area-tile is-selected' : 'area-tile'}
+            aria-current={activeArea === 'attendance' ? 'page' : undefined}
+            onClick={() => setActiveArea('attendance')}
+          >
+            Attendance
+          </button>
+          <button
+            type="button"
+            className={activeArea === 'administration' ? 'area-tile is-selected' : 'area-tile'}
+            aria-current={activeArea === 'administration' ? 'page' : undefined}
+            onClick={() => setActiveArea('administration')}
+          >
+            Administration
+          </button>
+        </nav>
+      )}
       {memberName && (
-        <section className="sessions" aria-labelledby="sessions-title">
+        activeArea === 'administration' && member?.isAdmin ? (
+          <AdminPanel
+            client={member.client}
+            currentMemberId={member.id}
+            onBack={() => setActiveArea('attendance')}
+          />
+        ) : <section className="sessions" aria-labelledby="sessions-title">
           <h2 id="sessions-title">Upcoming sessions</h2>
           {sessionsError && <p role="alert">Sessions are unavailable.</p>}
           {saveFailed && <p role="alert">Your attendance could not be saved.</p>}
