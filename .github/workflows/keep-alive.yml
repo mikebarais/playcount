@@ -9,7 +9,14 @@ on:
 jobs:
   ping-supabase:
     runs-on: ubuntu-latest
+    environment: supabase-playcount-lamanchette
     steps:
       - name: Ping Supabase REST API
+        env:
+          SUPABASE_PING_URL: ${{ secrets.SUPABASE_PING_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          curl -s -o /dev/null -w "%{http_code}" "${{ secrets.SUPABASE_PING_URL }}"
+          curl --fail --silent --show-error --output /dev/null \
+            --write-out "HTTP %{http_code}\n" \
+            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_PING_URL"

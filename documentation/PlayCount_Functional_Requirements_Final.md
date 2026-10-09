@@ -242,14 +242,12 @@ The application should enforce one club configuration per deployment, unique ver
 ## 17. Database Schema Management
 
 - Each club has an isolated Supabase CLI project and timestamped migration directory under `instances/<club>/supabase/`.
-- Each Supabase project is connected to the GitHub repository through the Supabase GitHub integration, with that club's directory set as the working directory. For La Manchette, the working directory is `instances/lamanchette`.
-- With production deployment enabled, Supabase applies new migrations from that working directory when changes reach the configured production branch.
+- Each Supabase project is connected to the repository through Supabase's GitHub integration. Its working directory is the repository-relative path containing that club's `supabase/` folder; for La Manchette, this is `instances/lamanchette`.
+- With **Deploy to production** enabled for `main`, Supabase applies new migrations from the configured working directory when commits reach that branch.
 - Each club's Supabase project uses its own working directory and database, so its migrations are deployed independently.
-- The custom GitHub Actions migration workflow is not used; database migration deployment is managed by the Supabase GitHub integration.
-- The migrations create the documented tables and seed La Manchette with a Saturday 10:00 two-hour schedule in `Europe/Brussels` at Centre sportif de Blocry, with an eight-player minimum. The first admin is Maximilian Barais (`mikebarais@gmail.com`).
+- The La Manchette integration has applied the schema and initial data: a Saturday 10:00 two-hour schedule in `Europe/Brussels` at Centre sportif de Blocry, an eight-player minimum, and administrator Maximilian Barais (`mikebarais@gmail.com`).
 - Each recurring schedule stores its own IANA timezone; generated session timestamps use the timezone of their schedule pattern.
 - Row-level security is enabled on all tables. No browser-access policies are included yet, so client access remains blocked until authorization policies are defined.
-- The initial migration targets a new, empty project. An existing database must be reviewed and baselined before the workflow runs against it.
 
 ## 18. Explicitly Removed from the Final Design
 
