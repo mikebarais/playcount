@@ -125,7 +125,7 @@ export default function AdminPanel({ client, currentMemberId }) {
     setMessage('');
     setCreatedLink(null);
     setDraft(null);
-    setPending({ kind, member, isActive });
+    setPending({ kind, member });
     setMode('confirm');
   }
 
