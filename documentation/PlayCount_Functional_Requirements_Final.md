@@ -61,6 +61,8 @@ Each club uses its own application deployment and Supabase project.
 - Each pattern contains the day of week, default time, default duration, and default location.
 - Each pattern has its own minimum required number of participants.
 - The application automatically generates upcoming sessions from these recurring patterns.
+- When a member opens the application, any missing pattern sessions from today through the next 4 weeks are created, in each pattern's timezone. The member then sees at most 6 sessions (recurring and exceptional) in that window, including cancelled ones.
+- Each generated session records the pattern date it was created for (`occurrence_date`), so a per-date override or cancellation never causes that date to be generated again.
 - The upcoming sessions are ordered chronologically.
 - The system must support different patterns for the same club, for example Thursday and Saturday sessions.
 - The interface must use dynamic dates and session information rather than hard-coded wording such as "Saturday".
@@ -207,6 +209,7 @@ erDiagram
 		uuid id PK
 		uuid club_id FK
 		uuid schedule_pattern_id FK "nullable for exceptional sessions"
+		date occurrence_date "pattern date it was generated for; null for exceptional sessions"
 		timestamptz starts_at
 		interval duration "inherits schedule pattern unless overridden"
 		text location
@@ -250,7 +253,9 @@ The application should enforce one club configuration per deployment, unique ver
 - Each recurring schedule stores its own IANA timezone; generated session timestamps use the timezone of their schedule pattern.
 - Row-level security is enabled on all tables. The anonymous role can read club branding from `clubs`; the other tables have no anonymous access policies.
 - Visiting `/p/<personal_link>` keeps the link in the address bar. The `session` Edge Function verifies the link and returns a one-hour token identifying the member; the browser renews it from the link as needed. Anyone holding the link authenticates as that member.
-- With that token, row-level security lets a member read only their own `members` row.
+- With that token, row-level security lets a member read only their own `members` row, plus the club's schedule patterns and sessions.
+- After Google sign-in, the frontend exchanges the member's personal link for the same token, so both sign-in methods access data as the same member.
+- Members cannot insert sessions directly. The `ensure_upcoming_sessions()` database function, callable only by members, creates missing pattern sessions idempotently.
 - The consolidated migration is for a fresh database. Recreating La Manchette from it requires dropping the existing schema and resetting Supabase migration history; back up any data that needs to be kept first.
 
 ## 18. Explicitly Removed from the Final Design

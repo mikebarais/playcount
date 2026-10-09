@@ -36,6 +36,8 @@ body {
   min-height: 100svh;
   display: grid;
   place-items: center;
+  align-content: center;
+  gap: 28px;
   padding: 28px;
   background: var(--color-page);
 }
@@ -49,6 +51,70 @@ body {
   min-height: min(76svh, 760px);
   overflow: hidden;
   background: var(--color-banner);
+}
+
+.club-banner.club-banner-compact {
+  min-height: 0;
+}
+
+.sessions {
+  width: min(100%, 1440px);
+  font-family: "Trebuchet MS", sans-serif;
+}
+
+.sessions h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+.session-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.session-card {
+  padding: 18px 20px;
+  border-left: 6px solid var(--color-shape);
+  background: var(--color-banner);
+}
+
+.session-card p {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.session-date {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.session-time {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.session-title {
+  font-weight: 700;
+}
+
+.session-cancelled {
+  border-left-color: var(--color-rule);
+  opacity: 0.6;
+}
+
+.session-cancelled .session-time {
+  text-decoration: line-through;
+}
+
+.session-status {
+  margin-top: 8px;
+  font-weight: 700;
 }
 
 .banner-content {

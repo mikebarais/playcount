@@ -7,9 +7,12 @@ import {
   loadInstanceConfig,
   signInWithGoogle,
 } from './supabaseClient';
+import SessionList from './SessionList';
 import './App.css';
 
 const personalLinkPattern = /^\/p\/([^/]+)\/?$/;
+const sessionWindowDays = 28;
+const maxSessions = 6;
 const themeKeys = ['page', 'banner', 'text', 'accent', 'shape', 'rule'];
 const hexColorPattern = /^#[0-9a-f]{6}$/i;
 
@@ -33,9 +36,32 @@ function getPersonalLink(pathname = window.location.pathname) {
   }
 }
 
+async function loadUpcomingSessions(memberClient) {
+  const { error: generateError } = await memberClient.rpc('ensure_upcoming_sessions');
+  if (generateError) throw generateError;
+
+  const windowStart = new Date();
+  windowStart.setHours(0, 0, 0, 0);
+  const windowEnd = new Date(windowStart);
+  windowEnd.setDate(windowEnd.getDate() + sessionWindowDays);
+
+  const { data, error } = await memberClient
+    .from('sessions')
+    .select('id, starts_at, duration, location, event_name, event_type, status, cancellation_reason')
+    .gte('starts_at', windowStart.toISOString())
+    .lt('starts_at', windowEnd.toISOString())
+    .order('starts_at')
+    .limit(maxSessions);
+
+  if (error) throw error;
+  return data;
+}
+
 export default function App() {
   const [club, setClub] = useState(null);
   const [memberName, setMemberName] = useState(null);
+  const [sessions, setSessions] = useState(null);
+  const [sessionsError, setSessionsError] = useState(false);
   const [authClient, setAuthClient] = useState(null);
   const [unregisteredEmail, setUnregisteredEmail] = useState(null);
   const [signInFailed, setSignInFailed] = useState(false);
@@ -69,21 +95,39 @@ export default function App() {
         applyTheme(data.theme);
         document.title = data.name;
 
+        async function showMember(memberClient, name) {
+          if (!isMounted) return;
+          setMemberName(name);
+          try {
+            const upcoming = await loadUpcomingSessions(memberClient);
+            if (isMounted) setSessions(upcoming);
+          } catch (sessionsLoadError) {
+            console.error('Unable to load sessions:', sessionsLoadError);
+            if (isMounted) setSessionsError(true);
+          }
+        }
+
         const personalLink = getPersonalLink();
         if (personalLink) {
+          let memberClient;
+          let member;
           try {
-            const memberClient = await createMemberClient(config, personalLink);
-            const { data: member, error: memberError } = await memberClient
+            memberClient = await createMemberClient(config, personalLink);
+            const { data: row, error: memberError } = await memberClient
               .from('members')
               .select('name')
               .single();
 
             if (memberError) throw memberError;
-            if (isMounted) setMemberName(member.name);
-            return;
+            member = row;
           } catch (memberError) {
             // An unrecognized link falls back to Google sign-in.
             console.error('Unable to sign in with the personal link:', memberError);
+          }
+
+          if (member) {
+            await showMember(memberClient, member.name);
+            return;
           }
         }
 
@@ -100,7 +144,8 @@ export default function App() {
 
         if (member) {
           window.history.replaceState(null, '', getPersonalPagePath(member.personal_link));
-          setMemberName(member.name);
+          // Session data is accessed with the member's own identity, as with a personal link.
+          await showMember(await createMemberClient(config, member.personal_link), member.name);
         } else {
           setUnregisteredEmail(session.user.email);
         }
@@ -143,7 +188,10 @@ export default function App() {
 
   return (
     <main className="page-shell">
-      <section className="club-banner" aria-labelledby="club-title">
+      <section
+        className={memberName ? 'club-banner club-banner-compact' : 'club-banner'}
+        aria-labelledby="club-title"
+      >
         <div className="banner-shape" aria-hidden="true" />
         {memberName && club.logoUrl && (
           <img className="club-logo" src={club.logoUrl} alt={`${club.name} logo`} />
@@ -172,6 +220,14 @@ export default function App() {
           )}
         </div>
       </section>
+      {memberName && (
+        <section className="sessions" aria-labelledby="sessions-title">
+          <h2 id="sessions-title">Upcoming sessions</h2>
+          {sessionsError && <p role="alert">Sessions are unavailable.</p>}
+          {!sessionsError && !sessions && <p role="status">Loading sessions</p>}
+          {sessions && <SessionList sessions={sessions} />}
+        </section>
+      )}
     </main>
   );
 }
