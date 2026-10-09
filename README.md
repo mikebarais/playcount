@@ -2,22 +2,17 @@
 
 PlayCount is a shared Vite frontend deployed separately for each club. Each deployment reads its club branding and application data from that club's Supabase project.
 
-## Cloudflare Pages
+## Cloudflare Workers
 
-Create one Cloudflare Pages project per club and connect each project to this GitHub repository. Use these build settings:
+The hostname's first label selects the club instance. For example, `lamanchette.playcount.workers.dev` resolves to `lamanchette` and loads `public/instances/lamanchette.json`.
 
-- Production branch: `main`
-- Root directory: `/`
-- Framework preset: `Vite`
-- Build command: `npm run build`
-- Build output directory: `dist`
+Configure the Worker build to run `npm run build` and publish the `dist` directory as static assets.
 
-Set these variables separately for each Pages project, using values from that club's Supabase project:
+Each JSON file under `public/instances/` maps an instance slug to its Supabase project URL and publishable API key. The key is sent to the browser and is public by design; row-level security controls its data access. Add one JSON file per club instance.
 
-- `VITE_SUPABASE_URL`: the Supabase project URL
-- `VITE_SUPABASE_ANON_KEY`: the project's anon/publishable API key
+For local development, set `VITE_DEFAULT_INSTANCE` in `.env` or use `?instance=lamanchette` on localhost.
 
-The frontend reads the club name and banner message from the `clubs` table. Row-level security controls which data the public client can read.
+The frontend reads the club name and banner message from that instance's `clubs` table.
 
 ## Database Migrations
 
@@ -25,4 +20,4 @@ Each club has a separate Supabase project and migration directory under `instanc
 
 ## Local preview
 
-Copy `.env.example` to `.env` and fill in the Supabase URL and anon/publishable key for the club you are developing against. Run `npm install`, then `npm run dev`. Create the production bundle with `npm run build`.
+Copy `.env.example` to `.env` and set `VITE_DEFAULT_INSTANCE` to the slug whose JSON file you want to load. Run `npm install`, then `npm run dev`. Create the production bundle with `npm run build`.

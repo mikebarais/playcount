@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './supabaseClient';
+import { createSupabaseClientForInstance, getInstanceSlug } from './supabaseClient';
 import './App.css';
 
 export default function App() {
@@ -11,22 +11,27 @@ export default function App() {
     let isMounted = true;
 
     async function loadClub() {
-      const { data, error } = await supabase
-        .from('clubs')
-        .select('name, banner_message')
-        .limit(1)
-        .maybeSingle();
+      try {
+        const instanceSlug = getInstanceSlug();
+        const supabase = await createSupabaseClientForInstance(instanceSlug);
+        const { data, error } = await supabase
+          .from('clubs')
+          .select('name, banner_message')
+          .limit(1)
+          .maybeSingle();
 
-      if (!isMounted) return;
+        if (!isMounted) return;
 
-      if (error || !data) {
-        setLoadError(true);
-      } else {
+        if (error || !data) throw error || new Error('Club row was not found.');
+
         setClub(data);
         document.title = data.name;
+      } catch (error) {
+        console.error('Unable to load club branding:', error);
+        if (isMounted) setLoadError(true);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-
-      setLoading(false);
     }
 
     loadClub();
