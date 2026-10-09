@@ -159,7 +159,7 @@ The principal attendance view is a chronological attendance matrix designed for 
 ## 15. Administrator Management
 
 - A club can have multiple administrators.
-- An existing administrator can add another member by name and assign the admin role; the application generates one personal link for that member.
+- An existing administrator can add another member by name and assign the admin role; the database generates a unique UUID personal link for that member.
 - A Google identity/email can optionally be associated with a member profile for Google sign-in.
 - Administrators have elevated permissions for their club only.
 
@@ -193,7 +193,7 @@ erDiagram
 		uuid club_id FK
 		text name
 		text google_email UK "nullable verified Google email"
-		text personal_link UK
+		uuid personal_link UK "database-generated bearer link"
 		boolean is_player
 		boolean is_admin
 	}

@@ -9,7 +9,7 @@ CREATE TABLE public.members (
     club_id uuid NOT NULL REFERENCES public.clubs(id) ON DELETE CASCADE,
     name text NOT NULL,
     google_email text UNIQUE,
-    personal_link text NOT NULL UNIQUE,
+    personal_link uuid NOT NULL UNIQUE DEFAULT gen_random_uuid(),
     is_player boolean NOT NULL,
     is_admin boolean NOT NULL,
     CHECK (is_player OR is_admin)
@@ -69,7 +69,6 @@ WITH seeded_club AS (
         club_id,
         name,
         google_email,
-        personal_link,
         is_player,
         is_admin
     )
@@ -77,7 +76,6 @@ WITH seeded_club AS (
         id,
         'Maximilian Barais',
         'mikebarais@gmail.com',
-        gen_random_uuid()::text,
         false,
         true
     FROM seeded_club

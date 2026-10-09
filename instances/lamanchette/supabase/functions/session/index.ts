@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { importJWK, SignJWT } from 'npm:jose@5';
 
 const sessionSeconds = 60 * 60;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -82,8 +83,8 @@ Deno.serve(async (request) => {
 
 async function createSession(request: Request) {
   const { personalLink } = await request.json().catch(() => ({}));
-  if (typeof personalLink !== 'string' || personalLink.length === 0) {
-    return json({ error: 'A personal link is required.' }, 400);
+  if (typeof personalLink !== 'string' || !uuidPattern.test(personalLink)) {
+    return json({ error: 'A valid personal link is required.' }, 400);
   }
 
   const signing = await getSigner();
