@@ -3,7 +3,9 @@ import {
   createMemberClient,
   createPublicClient,
   getInstanceSlug,
+  getPersonalPagePath,
   loadInstanceConfig,
+  signInWithGoogle,
 } from './supabaseClient';
 import './App.css';
 
@@ -23,7 +25,9 @@ function getPersonalLink(pathname = window.location.pathname) {
 export default function App() {
   const [club, setClub] = useState(null);
   const [memberName, setMemberName] = useState(null);
-  const [unknownLink, setUnknownLink] = useState(false);
+  const [authClient, setAuthClient] = useState(null);
+  const [unregisteredEmail, setUnregisteredEmail] = useState(null);
+  const [signInFailed, setSignInFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -34,6 +38,7 @@ export default function App() {
       try {
         const config = await loadInstanceConfig(getInstanceSlug());
         const supabase = createPublicClient(config);
+        setAuthClient(supabase);
         const { data, error } = await supabase
           .from('clubs')
           .select('name, banner_message')
@@ -58,10 +63,29 @@ export default function App() {
 
             if (memberError) throw memberError;
             if (isMounted) setMemberName(member.name);
+            return;
           } catch (memberError) {
+            // An unrecognized link falls back to Google sign-in.
             console.error('Unable to sign in with the personal link:', memberError);
-            if (isMounted) setUnknownLink(true);
           }
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data: member, error: memberError } = await supabase
+          .from('members')
+          .select('name, personal_link')
+          .maybeSingle();
+
+        if (memberError) throw memberError;
+        if (!isMounted) return;
+
+        if (member) {
+          window.history.replaceState(null, '', getPersonalPagePath(member.personal_link));
+          setMemberName(member.name);
+        } else {
+          setUnregisteredEmail(session.user.email);
         }
       } catch (error) {
         console.error('Unable to load club branding:', error);
@@ -77,6 +101,20 @@ export default function App() {
       isMounted = false;
     };
   }, []);
+
+  async function handleGoogleSignIn() {
+    setSignInFailed(false);
+    const { error } = await signInWithGoogle(authClient);
+    if (error) {
+      console.error('Google sign-in failed:', error);
+      setSignInFailed(true);
+    }
+  }
+
+  async function handleSignOut() {
+    await authClient.auth.signOut();
+    setUnregisteredEmail(null);
+  }
 
   if (loading) {
     return <main className="page-shell" aria-busy="true"><p role="status">Loading</p></main>;
@@ -95,7 +133,23 @@ export default function App() {
           <h1 id="club-title">{club.name}</h1>
           <div className="banner-rule" aria-hidden="true" />
           {memberName && <p className="member-greeting">Hello, {memberName}</p>}
-          {unknownLink && <p className="member-greeting" role="alert">This personal link is not recognized.</p>}
+          {!memberName && (
+            <div className="sign-in">
+              {unregisteredEmail ? (
+                <>
+                  <p role="alert">{unregisteredEmail} is not registered as a member.</p>
+                  <button type="button" className="sign-in-button" onClick={handleSignOut}>
+                    Use another account
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="sign-in-button" onClick={handleGoogleSignIn}>
+                  Sign in with Google
+                </button>
+              )}
+              {signInFailed && <p role="alert">Google sign-in could not be started.</p>}
+            </div>
+          )}
         </div>
       </section>
     </main>

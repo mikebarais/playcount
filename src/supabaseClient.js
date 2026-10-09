@@ -34,18 +34,39 @@ export async function loadInstanceConfig(slug) {
   return config;
 }
 
+let publicClient = null;
+
+// One shared instance, since it owns the persisted Google session.
 export function createPublicClient(config) {
-  return createClient(config.supabaseUrl, config.publishableKey);
+  publicClient ??= createClient(config.supabaseUrl, config.publishableKey);
+  return publicClient;
+}
+
+export function signInWithGoogle(client) {
+  const redirectUrl = new URL('/', window.location.origin);
+  const instance = new URLSearchParams(window.location.search).get('instance');
+  if (instance) redirectUrl.searchParams.set('instance', instance);
+
+  return client.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: redirectUrl.toString() },
+  });
+}
+
+export function getPersonalPagePath(personalLink) {
+  const path = `/p/${encodeURIComponent(personalLink)}`;
+  const instance = new URLSearchParams(window.location.search).get('instance');
+  return instance ? `${path}?instance=${encodeURIComponent(instance)}` : path;
 }
 
 export async function createMemberClient(config, personalLink) {
-  const publicClient = createPublicClient(config);
+  const anonClient = createPublicClient(config);
   let session = null;
 
   async function getAccessToken() {
     // Renew a minute early so in-flight requests never carry an expired token.
     if (!session || session.expiresAt - 60 <= Date.now() / 1000) {
-      const { data, error } = await publicClient.functions.invoke('session', {
+      const { data, error } = await anonClient.functions.invoke('session', {
         body: { personalLink },
       });
 

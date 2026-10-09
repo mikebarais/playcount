@@ -40,7 +40,9 @@ Each club uses its own application deployment and Supabase project.
 - After successful Google sign-in for an admin, the browser redirects to that admin's personal admin link.
 - Admin personal links and player personal links are distinct: an admin link grants admin permissions, while a player link grants access only to that player's own attendance.
 - Administrators can view and share players' personal links when needed.
-- Google sign-in matches the member using the verified Google email stored on the member row. Supabase Auth is not used.
+- The root page and unrecognized personal links show a Google sign-in option.
+- Google sign-in uses the Supabase Auth Google provider. The signed-in Google email is matched case-insensitively against the member row's `google_email`; row-level security exposes that row only to Google-authenticated sessions.
+- A Google account with no matching member sees that it is not registered and can switch accounts.
 - Google sign-in and personal links resolve to the same corresponding account and permissions.
 
 ## 4. Club Configuration and Deployment
