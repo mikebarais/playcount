@@ -209,7 +209,7 @@ export default function App() {
     const previous = board.attendances.find(
       (attendance) => attendance.session_id === sessionId && attendance.member_id === member.id,
     );
-    const status = isPresent ? 'Présent' : 'Absent';
+    const status = isPresent ? 'present' : 'absent';
 
     setSaveFailed(false);
     setOwnAttendance(sessionId, status);

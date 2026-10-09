@@ -88,12 +88,13 @@ Each club uses its own application deployment and Supabase project.
 
 ## 8. Attendance / RSVP
 
-- For each upcoming session, a registered player can select one of three statuses: Présent, Incertain, or Absent.
+- For each upcoming session, a registered player can select one of three statuses: present, uncertain, or absent.
 - The player can change their response later.
 - The player's response is associated with the specific session.
 - A player cannot add guests to their response.
 - Attendance information is visible in the session attendance view.
-- The current interface uses a checkbox per session: checked stores Présent, unchecked stores Absent. Incertain is not yet selectable.
+- The current interface uses a checkbox per session: checked stores `present`, unchecked stores `absent`. `uncertain` is not yet selectable.
+- Status values are stored as English codes (`present`, `uncertain`, `absent`; sessions `scheduled`, `cancelled`). The interface is English only for now; display text will later be translated.
 
 ## 9. Exceptional Participants / Guests
 
@@ -109,7 +110,7 @@ Each club uses its own application deployment and Supabase project.
 
 - Each recurring schedule pattern has its own configurable minimum number of participants.
 - A session uses its schedule pattern's minimum unless a session-specific minimum is set. An exceptional session without a recurring pattern must define its own minimum.
-- The application calculates the total confirmed participants for a session from registered players marked Présent plus exceptional participants added by the administrator.
+- The application calculates the total confirmed participants for a session from registered players marked present plus exceptional participants added by the administrator.
 - The session view displays the current total against that session's minimum.
 - A visual progress indicator shows whether the minimum threshold has been reached.
 
@@ -170,7 +171,7 @@ The principal attendance view is a chronological attendance matrix designed for 
 | Recurring Schedule | Weekly pattern | Day, time, timezone, duration, location, minimum participants |
 | Member | Club identity | Name, personal link, optional Google identity, player/admin roles |
 | Session | Concrete event | Date/time, duration, location, optional minimum override, planned/cancelled, cancellation reason, regular/exceptional |
-| Attendance | Member response | Session, member, Présent/Incertain/Absent |
+| Attendance | Member response | Session, member, present/uncertain/absent |
 | Exceptional Player | Admin-added participant | Session and name; participation is implicit; no login |
 
 ### Draft Supabase Schema

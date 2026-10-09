@@ -7,12 +7,12 @@ function addInterval(date, interval) {
   return new Date(date.getTime() + ((hours * 60 + minutes) * 60 + seconds) * 1000);
 }
 
-const dateFormat = new Intl.DateTimeFormat(undefined, {
+const dateFormat = new Intl.DateTimeFormat('en', {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
 });
-const timeFormat = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
+const timeFormat = new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
 export default function AttendanceMatrix({ board, memberId, onToggle }) {
   const { sessions, players, attendances, guests } = board;
@@ -23,7 +23,7 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
 
   const present = new Set(
     attendances
-      .filter((attendance) => attendance.status === 'Présent')
+      .filter((attendance) => attendance.status === 'present')
       .map((attendance) => `${attendance.session_id}:${attendance.member_id}`),
   );
 
@@ -36,7 +36,7 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
             {sessions.map((session) => {
               const startsAt = new Date(session.starts_at);
               const endsAt = addInterval(startsAt, session.duration);
-              const cancelled = session.status === 'annulée';
+              const cancelled = session.status === 'cancelled';
               const title = session.event_name || session.event_type;
 
               return (
@@ -71,7 +71,7 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
                 <th scope="row">{player.name}</th>
                 {sessions.map((session) => {
                   const checked = present.has(`${session.id}:${player.id}`);
-                  const editable = isSelf && session.status !== 'annulée';
+                  const editable = isSelf && session.status !== 'cancelled';
 
                   return (
                     <td key={session.id}>
