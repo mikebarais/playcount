@@ -37,7 +37,7 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  align-content: center;
+  align-content: start;
   gap: 28px;
   padding: 28px;
   background: var(--color-page);
@@ -327,5 +327,67 @@ body {
     right: -25%;
     width: 72%;
     height: 64%;
+  }
+}
+
+/* Signed-in header: kept short so the sessions stay in view. */
+.club-banner-compact {
+  align-items: center;
+}
+
+.club-banner-compact .banner-content {
+  padding: 24px 120px 24px 32px;
+}
+
+.club-banner-compact .banner-message {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.club-banner-compact h1 {
+  font-size: 48px;
+}
+
+.club-banner-compact .banner-rule {
+  width: 56px;
+  height: 5px;
+  margin-top: 12px;
+}
+
+.club-banner-compact .member-greeting {
+  margin-top: 12px;
+  font-size: 16px;
+}
+
+.club-banner-compact .club-logo {
+  top: 50%;
+  right: 24px;
+  width: 80px;
+  height: 80px;
+  transform: translateY(-50%);
+}
+
+@media (max-width: 700px) {
+  .club-banner-compact .banner-content {
+    padding: 16px 76px 16px 18px;
+  }
+
+  .club-banner-compact h1 {
+    font-size: 30px;
+  }
+
+  .club-banner-compact .banner-rule {
+    display: none;
+  }
+
+  .club-banner-compact .member-greeting {
+    margin-top: 6px;
+    font-size: 14px;
+  }
+
+  .club-banner-compact .club-logo {
+    right: 12px;
+    width: 52px;
+    height: 52px;
   }
 }
