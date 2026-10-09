@@ -32,6 +32,7 @@ jobs:
           supabase link \
             --project-ref "$SUPABASE_PROJECT_REF" \
             --password "$SUPABASE_DB_PASSWORD"
+            --skip-health-check
 
       - name: Apply pending migrations
         working-directory: instances/lamanchette
