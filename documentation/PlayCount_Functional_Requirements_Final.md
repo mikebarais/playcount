@@ -40,15 +40,18 @@ Each club uses its own application deployment and Supabase project.
 - After successful Google sign-in for an admin, the browser redirects to that admin's personal admin link.
 - Admin personal links and player personal links are distinct: an admin link grants admin permissions, while a player link grants access only to that player's own attendance.
 - Administrators can view and share players' personal links when needed.
-- Google sign-in matches the profile using the verified Google email stored on the player or admin profile. Supabase Auth is not used.
+- Google sign-in matches the member using the verified Google email stored on the member row. Supabase Auth is not used.
 - Google sign-in and personal links resolve to the same corresponding account and permissions.
 
 ## 4. Club Configuration and Deployment
 
 - Each club has its own name, recurring schedules, players, administrators, and announcement/banner.
-- Each deployment serves one club, with that club's data stored in its dedicated Supabase project.
+- Each club has its own Cloudflare Worker deployment and Supabase project.
+- The frontend derives the club instance slug from the first hostname label. For example, `lamanchette.playcount.workers.dev` selects `lamanchette`.
+- The frontend loads `public/instances/<slug>.json` to obtain that instance's Supabase URL and publishable API key. Local development can select an instance with `VITE_DEFAULT_INSTANCE` or an `instance` query parameter.
+- Club name and banner content come from the selected Supabase project's `clubs` row; the shared frontend contains no club-specific branding or venue values.
 - The application is generic and must not contain club-specific functional logic such as assuming that all sessions occur on Saturday.
-- Each club has its own application instance/subdomain on Cloudflare; a purchased custom domain is not required.
+- Each club has its own Cloudflare `workers.dev` hostname; a purchased custom domain is not required.
 
 ## 5. Recurring Schedule
 
@@ -146,8 +149,8 @@ The principal attendance view is a chronological attendance matrix designed for 
 ## 15. Administrator Management
 
 - A club can have multiple administrators.
-- An existing administrator can add another administrator by name; the application generates a personal admin link that can be shared with them.
-- A Google identity/email can optionally be associated with an admin profile for Google authentication.
+- An existing administrator can add another member by name and assign the admin role; the application generates one personal link for that member.
+- A Google identity/email can optionally be associated with a member profile for Google sign-in.
 - Administrators have elevated permissions for their club only.
 
 ## 16. Functional Data Model
@@ -156,15 +159,14 @@ The principal attendance view is a chronological attendance matrix designed for 
 | --- | --- | --- |
 | Club | Club configuration | Name, announcement |
 | Recurring Schedule | Weekly pattern | Day, time, timezone, duration, location, minimum participants |
-| Player | Registered participant | Name, personal access link, optional Google identity |
-| Administrator | Club administrator | Name, personal admin link, optional Google identity |
+| Member | Club identity | Name, personal link, optional Google identity, player/admin roles |
 | Session | Concrete event | Date/time, duration, location, optional minimum override, planned/cancelled, cancellation reason, regular/exceptional |
-| Attendance | Player response | Session, player, Présent/Incertain/Absent |
+| Attendance | Member response | Session, member, Présent/Incertain/Absent |
 | Exceptional Player | Admin-added participant | Session and name; participation is implicit; no login |
 
 ### Draft Supabase Schema
 
-Each club deployment contains one club configuration. Google sign-in matches profiles by their verified Google email; Supabase Auth is not used.
+Each club deployment contains one club configuration. Google sign-in matches member records by their verified Google email; Supabase Auth is not used.
 
 ```mermaid
 erDiagram
@@ -174,20 +176,14 @@ erDiagram
 		text banner_message
 	}
 
-	ADMINS {
+	MEMBERS {
 		uuid id PK
 		uuid club_id FK
 		text name
 		text google_email UK "nullable verified Google email"
 		text personal_link UK
-	}
-
-	PLAYERS {
-		uuid id PK
-		uuid club_id FK
-		text name
-		text google_email UK "nullable verified Google email"
-		text personal_link UK
+		boolean is_player
+		boolean is_admin
 	}
 
 	SCHEDULE_PATTERNS {
@@ -217,7 +213,7 @@ erDiagram
 
 	ATTENDANCES {
 		uuid session_id PK, FK
-		uuid player_id PK, FK
+		uuid member_id PK, FK
 		text status
 	}
 
@@ -227,27 +223,27 @@ erDiagram
 		text name
 	}
 
-	CLUBS ||--o{ ADMINS : has
-	CLUBS ||--o{ PLAYERS : registers
+	CLUBS ||--o{ MEMBERS : includes
 	CLUBS ||--o{ SCHEDULE_PATTERNS : defines
 	SCHEDULE_PATTERNS o|--o{ SESSIONS : generates
 	CLUBS ||--o{ SESSIONS : schedules
 	SESSIONS ||--o{ ATTENDANCES : receives
-	PLAYERS ||--o{ ATTENDANCES : responds
+	MEMBERS ||--o{ ATTENDANCES : responds
 	SESSIONS ||--o{ EXCEPTIONAL_PLAYERS : includes
 ```
 
-The application should enforce one club configuration per deployment, unique verified Google email per player or admin when present, unique personal links, and one attendance response per player/session. Both `PLAYERS` and `ADMINS` store the personal link directly in a unique `personal_link` column. These links are bearer credentials; restrict database access and never expose them in public queries. A player link must never grant admin permissions.
+The application should enforce one club configuration per deployment, unique verified Google email per member when present, unique personal links, and one attendance response per member/session. Each person has one `MEMBERS` row and one `personal_link`; `is_player` and `is_admin` describe that member's roles. These links are bearer credentials; restrict database access and never expose them in public queries. Admin privileges must only be granted to members with `is_admin = true`.
 
 ## 17. Database Schema Management
 
-- Each club has an isolated Supabase CLI project and timestamped migration directory under `instances/<club>/supabase/`.
+- Each club has an isolated Supabase CLI project and a single fresh-install schema migration under `instances/<club>/supabase/migrations/`.
 - Each Supabase project is connected to the repository through Supabase's GitHub integration. Its working directory is the repository-relative path containing that club's `supabase/` folder; for La Manchette, this is `instances/lamanchette`.
 - With **Deploy to production** enabled for `main`, Supabase applies new migrations from the configured working directory when commits reach that branch.
 - Each club's Supabase project uses its own working directory and database, so its migrations are deployed independently.
-- The La Manchette integration has applied the schema and initial data: a Saturday 10:00 two-hour schedule in `Europe/Brussels` at Centre sportif de Blocry, an eight-player minimum, and administrator Maximilian Barais (`mikebarais@gmail.com`).
+- The La Manchette schema seeds a Saturday 10:00 two-hour schedule in `Europe/Brussels` at Centre sportif de Blocry, an eight-player minimum, and Maximilian Barais (`mikebarais@gmail.com`) as an administrator-only member.
 - Each recurring schedule stores its own IANA timezone; generated session timestamps use the timezone of their schedule pattern.
-- Row-level security is enabled on all tables. No browser-access policies are included yet, so client access remains blocked until authorization policies are defined.
+- Row-level security is enabled on all tables. The anonymous role can read club branding from `clubs`; the other tables have no anonymous access policies.
+- The consolidated migration is for a fresh database. Recreating La Manchette from it requires dropping the existing schema and resetting Supabase migration history; back up any data that needs to be kept first.
 
 ## 18. Explicitly Removed from the Final Design
 
