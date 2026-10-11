@@ -125,7 +125,7 @@ Each club uses its own application deployment and Supabase project.
 
 The principal attendance view shows one session's attendance at a time, with a chronological, horizontally scrollable row of session headers above it.
 
-- The first upcoming session is selected when the page opens; selecting another header displays that session's attendance.
+- The first upcoming session is selected when the page opens; selecting another header displays that session's attendance. When scrolling starts to clip the selected header, the next visible header is selected.
 - Only the session headers scroll horizontally; player names and checkboxes remain in a fixed-width table below.
 - Registered players appear for every session, while exceptional participants appear only for the session to which they were added.
 - A player can edit only their own attendance checkbox; other players' responses, guests, and cancelled sessions are read-only.

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { sessionKind } from './sessionTypes';
 
 const intervalPattern = /^(\d+):(\d{2}):(\d{2})$/;
@@ -20,6 +20,39 @@ const timeFormat = new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-d
 export default function AttendanceMatrix({ board, memberId, onToggle }) {
   const { sessions, players, attendances, guests } = board;
   const [selectedSessionId, setSelectedSessionId] = useState(null);
+  const viewRef = useRef(null);
+  const stripRef = useRef(null);
+
+  function alignDetailBorder() {
+    const view = viewRef.current;
+    const strip = stripRef.current;
+    if (!view || !strip) return;
+
+    const selected = strip.querySelector('.session-head.is-selected');
+    const table = view.querySelector('.attendance-matrix');
+    if (!selected || !table) return;
+
+    const viewBounds = view.getBoundingClientRect();
+    const stripBounds = strip.getBoundingClientRect();
+    const tabBounds = selected.getBoundingClientRect();
+    const tableBounds = table.getBoundingClientRect();
+    const left = Math.max(0, Math.min(tableBounds.width, Math.max(stripBounds.left, tabBounds.left) - tableBounds.left));
+    const right = Math.max(left, Math.min(tableBounds.width, Math.min(stripBounds.right, tabBounds.right) - tableBounds.left));
+
+    view.style.setProperty('--tab-left', `${left}px`);
+    view.style.setProperty('--tab-right', `${right}px`);
+    view.style.setProperty('--detail-top', `${tableBounds.top - viewBounds.top}px`);
+  }
+
+  useLayoutEffect(() => {
+    if (sessions.length === 0) return;
+
+    const observer = new ResizeObserver(alignDetailBorder);
+    observer.observe(viewRef.current);
+    observer.observe(stripRef.current);
+    alignDetailBorder();
+    return () => observer.disconnect();
+  }, [selectedSessionId, sessions]);
 
   if (sessions.length === 0) {
     return <p className="sessions-empty">No upcoming sessions.</p>;
@@ -38,9 +71,32 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
     : selectedSession.min_players ?? selectedSession.schedule_patterns?.min_players;
   const minimumReached = participantCount >= minimum;
 
+  function followVisibleSession(event) {
+    alignDetailBorder();
+    const strip = event.currentTarget;
+    const viewport = strip.getBoundingClientRect();
+    const headers = strip.children;
+    const selectedIndex = sessions.findIndex((session) => session.id === selectedSession.id);
+    const selectedBounds = headers[selectedIndex].getBoundingClientRect();
+    const clippedOnLeft = selectedBounds.left < viewport.left - 0.5;
+    const clippedOnRight = selectedBounds.right > viewport.right + 0.5;
+
+    if (!clippedOnLeft && !clippedOnRight) return;
+
+    const direction = clippedOnLeft ? 1 : -1;
+    for (let index = selectedIndex + direction; index >= 0 && index < sessions.length; index += direction) {
+      const bounds = headers[index].getBoundingClientRect();
+      const candidateWidth = Math.min(bounds.right, viewport.right) - Math.max(bounds.left, viewport.left);
+      if (candidateWidth >= bounds.width / 2) {
+        setSelectedSessionId(sessions[index].id);
+        return;
+      }
+    }
+  }
+
   return (
-    <div className="attendance-view">
-      <nav className="session-strip" aria-label="Upcoming sessions">
+    <div ref={viewRef} className={`attendance-view attendance-${sessionKind(selectedSession)}${selectedSession.status === 'cancelled' ? ' attendance-cancelled' : ''}`}>
+      <nav ref={stripRef} className="session-strip" aria-label="Upcoming sessions" onScroll={followVisibleSession} onTransitionEnd={alignDetailBorder}>
         {sessions.map((session) => {
           const startsAt = new Date(session.starts_at);
           const endsAt = addInterval(startsAt, session.duration);
