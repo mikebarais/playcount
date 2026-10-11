@@ -85,6 +85,8 @@ Each club uses its own application deployment and Supabase project.
 - An administrator can cancel an individual session.
 - A cancelled session can have a cancellation reason.
 - Cancellation affects the individual session only and does not change the recurring weekly pattern.
+- The Administration area has a Sessions sub-tab, next to Members, listing the recurring sessions from today through the next 4 weeks. For each session an administrator can change the start time (on the same date, in the pattern's timezone), location, and minimum players (empty restores the pattern default); cancel it with an optional reason or restore it; and add or remove exceptional players by name. Every change requires explicit confirmation.
+- Duration overrides are not yet editable in the interface.
 
 ## 8. Attendance / RSVP
 
@@ -263,6 +265,7 @@ The application should enforce one club configuration per deployment, unique ver
 - Visiting `/p/<personal_link>` keeps the link in the address bar. The `session` Edge Function verifies the link and returns a one-hour token identifying the member once per page load. Tokens are not renewed automatically; reloading the page exchanges the link for a fresh token and reloads attendance data. Anyone holding the link authenticates as that member.
 - With that token, row-level security lets a member read only their own `members` row, plus the club's schedule patterns, sessions, attendances, and exceptional players. A player can insert and update only their own attendance rows. Other players' names are available through the `club_players()` function, which never exposes personal links.
 - Admin member operations use separate `admin_*` database functions that verify the caller's active administrator row and club. Only those functions return personal links or mutate member records.
+- Admin session operations (`admin_list_sessions`, `admin_update_session`, `admin_set_session_cancelled`, `admin_add_exceptional_player`, `admin_remove_exceptional_player`) verify the caller is an administrator of the session's club through `admin_club_id()`.
 - Deleting a member prevents new personal-link sessions and makes their existing member token fail member checks. Attendance rows are deleted by the member foreign-key cascade.
 - After Google sign-in, the frontend exchanges the member's personal link for the same token, so both sign-in methods access data as the same member.
 - Members cannot insert sessions directly. The `ensure_upcoming_sessions()` database function, callable only by members, creates missing pattern sessions idempotently.

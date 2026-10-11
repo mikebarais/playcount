@@ -712,6 +712,144 @@ body {
   overflow-wrap: anywhere;
 }
 
+.admin-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-shape);
+}
+
+.admin-panel .admin-subtab {
+  min-height: 0;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+}
+
+.admin-panel .admin-subtab.is-selected {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.admin-section {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-session-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-session {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-left: 4px solid var(--color-shape);
+  background: var(--color-banner);
+}
+
+.admin-session.is-cancelled {
+  border-left-color: var(--color-rule);
+}
+
+.admin-session-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-session-info h3 {
+  margin: 0;
+}
+
+.admin-session-info p {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-session-time {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.admin-session.is-cancelled .admin-session-time {
+  text-decoration: line-through;
+}
+
+.admin-session-status {
+  color: var(--color-rule);
+  font-weight: 700;
+}
+
+.admin-inline-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-inline-form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.admin-inline-form .admin-form-actions {
+  grid-column: 1 / -1;
+}
+
+.admin-inline-form input,
+.admin-guest-form input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-shape);
+  border-radius: 0;
+  background: var(--color-page);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.admin-guests h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.admin-guests > p {
+  margin: 0 0 8px;
+  opacity: 0.75;
+}
+
+.admin-guest-list {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-guest-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+
+.admin-guest-form {
+  display: flex;
+  gap: 8px;
+  max-width: 420px;
+}
+
 @media (max-width: 700px) {
   .area-tile {
     flex: 1 1 120px;
@@ -719,7 +857,8 @@ body {
   }
 
   .admin-heading,
-  .admin-member {
+  .admin-member,
+  .admin-session-header {
     align-items: stretch;
     flex-direction: column;
   }

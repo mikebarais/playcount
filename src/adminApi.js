@@ -39,3 +39,38 @@ export async function deleteMember(client, memberId) {
     p_member_id: memberId,
   });
 }
+
+export async function listSessions(client) {
+  await invokeAdmin(client, 'ensure_upcoming_sessions');
+  return invokeAdmin(client, 'admin_list_sessions');
+}
+
+export async function updateSession(client, sessionId, { time, location, minPlayers }) {
+  await invokeAdmin(client, 'admin_update_session', {
+    p_session_id: sessionId,
+    p_start_time: time,
+    p_location: location,
+    p_min_players: minPlayers,
+  });
+}
+
+export async function setSessionCancelled(client, sessionId, cancelled, reason = null) {
+  await invokeAdmin(client, 'admin_set_session_cancelled', {
+    p_session_id: sessionId,
+    p_cancelled: cancelled,
+    p_reason: reason,
+  });
+}
+
+export async function addExceptionalPlayer(client, sessionId, name) {
+  return invokeAdmin(client, 'admin_add_exceptional_player', {
+    p_session_id: sessionId,
+    p_name: name,
+  });
+}
+
+export async function removeExceptionalPlayer(client, playerId) {
+  await invokeAdmin(client, 'admin_remove_exceptional_player', {
+    p_player_id: playerId,
+  });
+}
