@@ -61,7 +61,7 @@ Each club uses its own application deployment and Supabase project.
 - Each pattern contains the day of week, default time, default duration, and default location.
 - Each pattern has its own minimum required number of participants.
 - The application automatically generates upcoming sessions from these recurring patterns.
-- When a member opens the application, any missing pattern sessions from today through the next 4 weeks are created, in each pattern's timezone. The member then sees at most 6 sessions (recurring and exceptional) in that window, including cancelled ones.
+- When a member opens the application, any missing pattern sessions from today through the next 4 weeks are created, in the club's timezone. The member then sees at most 6 sessions (recurring and exceptional) in that window, including cancelled ones.
 - Each generated session records the pattern date it was created for (`occurrence_date`), so a per-date override or cancellation never causes that date to be generated again.
 - The upcoming sessions are ordered chronologically.
 - The system must support different patterns for the same club, for example Thursday and Saturday sessions.
@@ -76,6 +76,8 @@ Each club uses its own application deployment and Supabase project.
 - Exceptional sessions appear in the same chronological session list as recurring sessions.
 - They use the same attendance/RSVP mechanism as regular sessions.
 - Exceptional sessions can subsequently be modified or cancelled by an administrator.
+- The Sessions admin tab has an "Add exceptional session" button. The form takes the date (today or later), start time, duration in minutes, location, type (training, match, or other event), optional name, and minimum players; creation requires confirmation.
+- Session types are stored as language-neutral codes (`training`, `match`, `other`).
 
 ## 7. Session Exceptions and Cancellation
 
@@ -85,7 +87,7 @@ Each club uses its own application deployment and Supabase project.
 - An administrator can cancel an individual session.
 - A cancelled session can have a cancellation reason.
 - Cancellation affects the individual session only and does not change the recurring weekly pattern.
-- The Administration area has a Sessions sub-tab, next to Members, listing the recurring sessions from today through the next 4 weeks. For each session an administrator can change the start time (on the same date, in the pattern's timezone), location, and minimum players (empty restores the pattern default); cancel it with an optional reason or restore it; and add or remove exceptional players by name. Every change requires explicit confirmation.
+- The Administration area has a Sessions sub-tab, first and before Members, listing regular and exceptional sessions from today through the next 4 weeks in chronological order. For each session an administrator can change the start time (on the same date), location, and minimum players (empty restores the pattern default for regular sessions; exceptional sessions always need one); cancel it with an optional reason or restore it; and add or remove exceptional players by name. Every change requires explicit confirmation.
 - Duration overrides are not yet editable in the interface.
 
 ## 8. Attendance / RSVP
@@ -173,8 +175,8 @@ The principal attendance view is a chronological attendance matrix designed for 
 
 | Entity | Purpose | Key functional information |
 | --- | --- | --- |
-| Club | Club configuration | Name, announcement, color theme, logo |
-| Recurring Schedule | Weekly pattern | Day, time, timezone, duration, location, minimum participants |
+| Club | Club configuration | Name, announcement, color theme, logo, timezone |
+| Recurring Schedule | Weekly pattern | Day, time, duration, location, minimum participants |
 | Member | Club identity | Name, personal link, optional Google identity, player/admin roles |
 | Session | Concrete event | Date/time, duration, location, optional minimum override, planned/cancelled, cancellation reason, regular/exceptional |
 | Attendance | Member response | Session, member, present/uncertain/absent |
@@ -192,6 +194,7 @@ erDiagram
 		text banner_message
 		jsonb theme
 		text logo_path
+		text timezone
 	}
 
 	MEMBERS {
@@ -209,7 +212,6 @@ erDiagram
 		uuid club_id FK
 		smallint day_of_week "0 Sunday through 6 Saturday"
 		time time
-		text timezone
 		interval duration
 		text location
 		integer min_players
@@ -260,7 +262,7 @@ The application should enforce one club configuration per deployment, unique ver
 - With **Deploy to production** enabled for `main`, Supabase applies new migrations from the configured working directory when commits reach that branch.
 - Each club's Supabase project uses its own working directory and database, so its migrations are deployed independently.
 - The La Manchette schema seeds a Saturday 10:00 two-hour schedule in `Europe/Brussels` at Centre sportif de Blocry, an eight-player minimum, and Maximilian Barais (`mikebarais@gmail.com`) as an administrator-only member.
-- Each recurring schedule stores its own IANA timezone; generated session timestamps use the timezone of their schedule pattern.
+- Each club stores one IANA timezone (`clubs.timezone`); all session dates and times, regular and exceptional, are interpreted in it.
 - Row-level security is enabled on all tables. The anonymous role can read club branding from `clubs`; the other tables have no anonymous access policies.
 - Visiting `/p/<personal_link>` keeps the link in the address bar. The `session` Edge Function verifies the link and returns a one-hour token identifying the member once per page load. Tokens are not renewed automatically; reloading the page exchanges the link for a fresh token and reloads attendance data. Anyone holding the link authenticates as that member.
 - With that token, row-level security lets a member read only their own `members` row, plus the club's schedule patterns, sessions, attendances, and exceptional players. A player can insert and update only their own attendance rows. Other players' names are available through the `club_players()` function, which never exposes personal links.

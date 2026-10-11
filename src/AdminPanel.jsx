@@ -3,12 +3,12 @@ import MembersAdmin from './MembersAdmin';
 import SessionsAdmin from './SessionsAdmin';
 
 const sections = [
-  { id: 'members', label: 'Members' },
   { id: 'sessions', label: 'Sessions' },
+  { id: 'members', label: 'Members' },
 ];
 
 export default function AdminPanel({ client, currentMemberId }) {
-  const [section, setSection] = useState('members');
+  const [section, setSection] = useState('sessions');
 
   return (
     <section className="admin-panel" aria-labelledby="admin-title">

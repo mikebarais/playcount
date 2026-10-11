@@ -45,6 +45,18 @@ export async function listSessions(client) {
   return invokeAdmin(client, 'admin_list_sessions');
 }
 
+export async function createSession(client, session) {
+  return invokeAdmin(client, 'admin_create_session', {
+    p_local_date: session.date,
+    p_start_time: session.time,
+    p_duration: `${session.durationMinutes} minutes`,
+    p_location: session.location,
+    p_event_name: session.name || null,
+    p_event_type: session.type || null,
+    p_min_players: session.minPlayers,
+  });
+}
+
 export async function updateSession(client, sessionId, { time, location, minPlayers }) {
   await invokeAdmin(client, 'admin_update_session', {
     p_session_id: sessionId,

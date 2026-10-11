@@ -788,6 +788,37 @@ body {
   font-weight: 700;
 }
 
+.admin-session-info h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-session-badge {
+  padding: 2px 8px;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-session-title {
+  font-weight: 700;
+}
+
+.admin-create-session {
+  padding: 16px;
+  border-left: 4px solid var(--color-accent);
+  background: var(--color-banner);
+}
+
+.admin-create-session h3 {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .admin-inline-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -806,6 +837,7 @@ body {
 }
 
 .admin-inline-form input,
+.admin-inline-form select,
 .admin-guest-form input {
   width: 100%;
   min-height: 40px;

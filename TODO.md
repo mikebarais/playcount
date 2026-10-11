@@ -6,10 +6,10 @@
 
 ## Administration
 
-- Sessions tab: add a button to create an exceptional session (date, time, duration, location, name/type, minimum players).
-- Sessions tab: list regular and exceptional sessions together, ordered chronologically.
-- Add an admin tab to manage schedule patterns (day, time, timezone, duration, location, minimum players).
-- Add a club notification/alert banner (e.g. "pay your annual membership fee"): a `clubs` column editable by admins and shown to members.
+- Add a "Session patterns" admin tab (after Members) to manage schedule patterns (day, time, duration, location, minimum players).
+- Add an "Announcements" admin tab (last) for a club notification banner (e.g. "pay your annual membership fee"): a `clubs` column editable by admins and shown to members.
+- Allow deleting an exceptional session created by mistake (currently it can only be cancelled).
+- Allow editing a session's duration, and an exceptional session's date, name and type.
 
 ## Internationalization
 

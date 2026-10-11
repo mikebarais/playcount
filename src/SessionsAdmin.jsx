@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
   addExceptionalPlayer,
+  createSession,
   listSessions,
   removeExceptionalPlayer,
   setSessionCancelled,
   updateSession,
 } from './adminApi';
 import ConfirmDialog, { ChangeSummary } from './ConfirmDialog';
+import { sessionTitle, sessionTypes } from './sessionTypes';
 
 // Dates arrive as club-local calendar dates, so they are formatted in UTC to avoid shifting the day.
 const dateFormat = new Intl.DateTimeFormat('en', {
@@ -33,12 +35,37 @@ function endTime(time, duration) {
 }
 
 function minimumLabel(minPlayers, defaultMinPlayers) {
-  return minPlayers === null ? `${defaultMinPlayers} (default)` : String(minPlayers);
+  if (minPlayers !== null) return String(minPlayers);
+  return defaultMinPlayers === null ? 'Not set' : `${defaultMinPlayers} (default)`;
+}
+
+function todayIso() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function emptySessionDraft() {
+  return {
+    date: todayIso(),
+    time: '',
+    durationMinutes: '120',
+    location: '',
+    name: '',
+    type: 'training',
+    minPlayers: '',
+  };
+}
+
+function formatDuration(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return [hours && `${hours} h`, rest && `${rest} min`].filter(Boolean).join(' ');
 }
 
 export default function SessionsAdmin({ client }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(null);
   const [editing, setEditing] = useState(null);
   const [cancelling, setCancelling] = useState(null);
   const [guestNames, setGuestNames] = useState({});
@@ -76,8 +103,65 @@ export default function SessionsAdmin({ client }) {
     setMessage('');
   }
 
+  function beginCreate() {
+    resetFeedback();
+    setEditing(null);
+    setCancelling(null);
+    setCreating(emptySessionDraft());
+  }
+
+  function stageCreate(event) {
+    event.preventDefault();
+    resetFeedback();
+
+    const location = creating.location.trim();
+    const name = creating.name.trim();
+    const durationMinutes = Number(creating.durationMinutes);
+    const minPlayers = Number(creating.minPlayers);
+
+    if (!creating.date || !creating.time) {
+      setError('Enter a date and start time.');
+      return;
+    }
+    if (creating.date < todayIso()) {
+      setError('The session date cannot be in the past.');
+      return;
+    }
+    if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 1440) {
+      setError('Duration must be a whole number of minutes between 1 and 1440.');
+      return;
+    }
+    if (!location) {
+      setError('Enter a location.');
+      return;
+    }
+    if (!name && !creating.type) {
+      setError('Enter a name or choose a type.');
+      return;
+    }
+    if (!Number.isInteger(minPlayers) || minPlayers < 1) {
+      setError('Minimum players must be a whole number of at least 1.');
+      return;
+    }
+
+    const values = { ...creating, location, name, durationMinutes, minPlayers };
+    const typeLabel = sessionTypes.find(({ value }) => value === values.type)?.label ?? 'None';
+    const changes = [
+      ['Date', formatDate(values.date)],
+      ['Start time', values.time],
+      ['Duration', formatDuration(durationMinutes)],
+      ['Location', location],
+      ['Name', name || 'None'],
+      ['Type', typeLabel],
+      ['Minimum players', String(minPlayers)],
+    ].map(([label, value]) => ({ label, value, previous: null }));
+
+    setPending({ kind: 'create', values, changes });
+  }
+
   function beginEdit(session) {
     resetFeedback();
+    setCreating(null);
     setCancelling(null);
     setEditing({
       sessionId: session.session_id,
@@ -110,6 +194,10 @@ export default function SessionsAdmin({ client }) {
     }
     if (minPlayers !== null && (!Number.isInteger(minPlayers) || minPlayers < 1)) {
       setError('Minimum players must be a whole number of at least 1, or empty to use the default.');
+      return;
+    }
+    if (minPlayers === null && session.is_exceptional) {
+      setError('Exceptional sessions need a minimum number of players.');
       return;
     }
 
@@ -153,7 +241,11 @@ export default function SessionsAdmin({ client }) {
     setBusy(true);
     setError('');
     try {
-      if (kind === 'update') {
+      if (kind === 'create') {
+        await createSession(client, pending.values);
+        setCreating(null);
+        setMessage(`Exceptional session on ${formatDate(pending.values.date)} created.`);
+      } else if (kind === 'update') {
         await updateSession(client, session.session_id, pending.values);
         setEditing(null);
         setMessage(`Session on ${formatDate(session.local_date)} updated.`);
@@ -191,6 +283,7 @@ export default function SessionsAdmin({ client }) {
   }
 
   const dialog = pending && {
+    create: { title: 'Create exceptional session', confirmLabel: 'Confirm and create' },
     update: { title: 'Confirm session changes', confirmLabel: 'Confirm and save' },
     cancel: { title: 'Cancel session', confirmLabel: 'Confirm cancellation' },
     restore: { title: 'Restore session', confirmLabel: 'Confirm restore' },
@@ -203,6 +296,95 @@ export default function SessionsAdmin({ client }) {
       {error && !pending && <p className="admin-alert" role="alert">{error}</p>}
       {message && <p className="admin-notice" role="status">{message}</p>}
 
+      <div className="admin-list-toolbar">
+        <p>{sessions.length} upcoming {sessions.length === 1 ? 'session' : 'sessions'}</p>
+        <button className="admin-primary-button" type="button" onClick={beginCreate}>
+          Add exceptional session
+        </button>
+      </div>
+
+      {creating && (
+        <form className="admin-inline-form admin-create-session" onSubmit={stageCreate}>
+          <h3>New exceptional session</h3>
+          <label>
+            Date
+            <input
+              type="date"
+              required
+              min={todayIso()}
+              value={creating.date}
+              onChange={(event) => setCreating({ ...creating, date: event.target.value })}
+            />
+          </label>
+          <label>
+            Start time
+            <input
+              type="time"
+              required
+              value={creating.time}
+              onChange={(event) => setCreating({ ...creating, time: event.target.value })}
+            />
+          </label>
+          <label>
+            Duration (minutes)
+            <input
+              type="number"
+              min={1}
+              max={1440}
+              step={5}
+              required
+              value={creating.durationMinutes}
+              onChange={(event) => setCreating({ ...creating, durationMinutes: event.target.value })}
+            />
+          </label>
+          <label>
+            Location
+            <input
+              maxLength={200}
+              required
+              value={creating.location}
+              onChange={(event) => setCreating({ ...creating, location: event.target.value })}
+            />
+          </label>
+          <label>
+            Type
+            <select
+              value={creating.type}
+              onChange={(event) => setCreating({ ...creating, type: event.target.value })}
+            >
+              {sessionTypes.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Name (optional)
+            <input
+              maxLength={120}
+              value={creating.name}
+              onChange={(event) => setCreating({ ...creating, name: event.target.value })}
+            />
+          </label>
+          <label>
+            Minimum players
+            <input
+              type="number"
+              min={1}
+              step={1}
+              required
+              value={creating.minPlayers}
+              onChange={(event) => setCreating({ ...creating, minPlayers: event.target.value })}
+            />
+          </label>
+          <div className="admin-form-actions">
+            <button className="admin-secondary-button" type="button" onClick={() => setCreating(null)}>
+              Cancel
+            </button>
+            <button className="admin-primary-button" type="submit">Review session</button>
+          </div>
+        </form>
+      )}
+
       {loading ? (
         <p role="status">Loading sessions</p>
       ) : sessions.length === 0 ? (
@@ -214,6 +396,7 @@ export default function SessionsAdmin({ client }) {
             const end = endTime(session.local_time, session.duration);
             const isEditing = editing?.sessionId === session.session_id;
             const isCancelling = cancelling?.sessionId === session.session_id;
+            const title = sessionTitle(session);
 
             return (
               <li
@@ -222,7 +405,11 @@ export default function SessionsAdmin({ client }) {
               >
                 <div className="admin-session-header">
                   <div className="admin-session-info">
-                    <h3>{formatDate(session.local_date)}</h3>
+                    <h3>
+                      {formatDate(session.local_date)}
+                      {session.is_exceptional && <span className="admin-session-badge">Exceptional</span>}
+                    </h3>
+                    {title && <p className="admin-session-title">{title}</p>}
                     <p className="admin-session-time">
                       {shortTime(session.local_time)}{end && `–${end}`}
                     </p>
@@ -274,7 +461,8 @@ export default function SessionsAdmin({ client }) {
                         type="number"
                         min={1}
                         step={1}
-                        placeholder={`${session.default_min_players} (default)`}
+                        required={session.is_exceptional}
+                        placeholder={session.is_exceptional ? '' : `${session.default_min_players} (default)`}
                         value={editing.minPlayers}
                         onChange={(event) => setEditing({ ...editing, minPlayers: event.target.value })}
                       />
@@ -356,6 +544,7 @@ export default function SessionsAdmin({ client }) {
           onCancel={cancelDialog}
           onConfirm={confirmPending}
         >
+          {pending.kind === 'create' && <ChangeSummary changes={pending.changes} />}
           {pending.kind === 'update' && <ChangeSummary changes={pending.changes} />}
           {pending.kind === 'cancel' && (
             <p>

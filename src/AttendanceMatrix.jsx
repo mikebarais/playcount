@@ -1,3 +1,5 @@
+import { sessionTitle } from './sessionTypes';
+
 const intervalPattern = /^(\d+):(\d{2}):(\d{2})$/;
 
 function addInterval(date, interval) {
@@ -48,7 +50,7 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
               const startsAt = new Date(session.starts_at);
               const endsAt = addInterval(startsAt, session.duration);
               const cancelled = session.status === 'cancelled';
-              const title = session.event_name || session.event_type;
+              const title = sessionTitle(session);
 
               return (
                 <th
