@@ -45,6 +45,31 @@ export async function listSessions(client) {
   return invokeAdmin(client, 'admin_list_sessions');
 }
 
+export async function listPatterns(client) {
+  return invokeAdmin(client, 'admin_list_patterns');
+}
+
+export async function createPattern(client, pattern) {
+  return invokeAdmin(client, 'admin_create_pattern', {
+    p_day_of_week: pattern.day,
+    p_time: pattern.time,
+    p_duration_minutes: pattern.durationMinutes,
+    p_location: pattern.location,
+    p_min_players: pattern.minPlayers,
+  });
+}
+
+export async function updatePattern(client, pattern) {
+  await invokeAdmin(client, 'admin_update_pattern', {
+    p_pattern_id: pattern.id,
+    p_day_of_week: pattern.day,
+    p_time: pattern.time,
+    p_duration_minutes: pattern.durationMinutes,
+    p_location: pattern.location,
+    p_min_players: pattern.minPlayers,
+  });
+}
+
 export async function createSession(client, session) {
   return invokeAdmin(client, 'admin_create_session', {
     p_local_date: session.date,

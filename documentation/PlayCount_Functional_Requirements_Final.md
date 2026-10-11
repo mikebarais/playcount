@@ -65,6 +65,7 @@ Each club uses its own application deployment and Supabase project.
 - Each generated session records the pattern date it was created for (`occurrence_date`), so a per-date override or cancellation never causes that date to be generated again.
 - The upcoming sessions are ordered chronologically.
 - The system must support different patterns for the same club, for example Thursday and Saturday sessions.
+- The Patterns administration tab lists weekly patterns and allows administrators to create or edit their weekday, time, duration, location, and minimum. New values apply to sessions generated afterward; existing session dates, times, duration, and location stay unchanged, while their effective minimum follows the pattern unless overridden.
 - The interface must use dynamic dates and session information rather than hard-coded wording such as "Saturday".
 
 ## 6. Exceptional Sessions

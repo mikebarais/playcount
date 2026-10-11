@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import MembersAdmin from './MembersAdmin';
+import PatternsAdmin from './PatternsAdmin';
 import SessionsAdmin from './SessionsAdmin';
 
 const sections = [
   { id: 'sessions', label: 'Sessions' },
+  { id: 'patterns', label: 'Patterns' },
   { id: 'members', label: 'Members' },
 ];
 
@@ -35,6 +37,7 @@ export default function AdminPanel({ client, currentMemberId }) {
 
       {section === 'members' && <MembersAdmin client={client} currentMemberId={currentMemberId} />}
       {section === 'sessions' && <SessionsAdmin client={client} />}
+      {section === 'patterns' && <PatternsAdmin client={client} />}
     </section>
   );
 }
