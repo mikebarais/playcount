@@ -77,6 +77,7 @@ export default function MembersAdmin({ client, currentMemberId }) {
       googleEmail: member.google_email || '',
       isPlayer: member.is_player,
       isAdmin: member.is_admin,
+      personalLink: member.personal_link,
       original: member,
     });
     setMode('form');
@@ -117,16 +118,6 @@ export default function MembersAdmin({ client, currentMemberId }) {
     }
   }
 
-  async function copyLink(link, memberName) {
-    try {
-      await navigator.clipboard.writeText(personalUrl(link));
-      setMessage(`Personal link copied for ${memberName}.`);
-      setError('');
-    } catch (copyError) {
-      setError(copyError.message || 'Unable to copy the personal link.');
-    }
-  }
-
   // Only member deletion goes through the confirmation dialog first.
   async function runAction(action) {
     setBusy(true);
@@ -146,7 +137,7 @@ export default function MembersAdmin({ client, currentMemberId }) {
         setMode('list');
       } else if (action.kind === 'regenerate') {
         const newLink = await regenerateMemberLink(client, action.member.member_id);
-        setCreatedLink(newLink);
+        setDraft((current) => ({ ...current, personalLink: newLink }));
         setMessage(`Personal link regenerated for ${action.member.name}. The old link cannot start another session; tokens already issued can remain valid for up to one hour.`);
       } else if (action.kind === 'delete') {
         await deleteMember(client, action.member.member_id);
@@ -176,10 +167,14 @@ export default function MembersAdmin({ client, currentMemberId }) {
       {message && <p className="admin-notice" role="status">{message}</p>}
       {createdLink && (
         <div className="admin-link-result">
-          <p>{personalUrl(createdLink)}</p>
-          <button type="button" onClick={() => copyLink(createdLink, 'the member')}>
-            Copy personal link
-          </button>
+          <label>
+            Personal link
+            <input
+              readOnly
+              value={personalUrl(createdLink)}
+              onFocus={(event) => event.target.select()}
+            />
+          </label>
         </div>
       )}
 
@@ -209,18 +204,7 @@ export default function MembersAdmin({ client, currentMemberId }) {
                       </div>
                     </div>
                     <div className="admin-member-actions">
-                      <button type="button" onClick={() => copyLink(memberRow.personal_link, memberRow.name)}>
-                        Copy link
-                      </button>
                       <button type="button" onClick={() => beginEdit(memberRow)}>Edit</button>
-                      <button
-                        type="button"
-                        disabled={isCurrent || busy}
-                        title={isCurrent ? 'Regenerate your link from another administrator account.' : undefined}
-                        onClick={() => beginAction('regenerate', memberRow)}
-                      >
-                        Regenerate link
-                      </button>
                       <button
                         type="button"
                         className="admin-danger-button"
@@ -261,6 +245,28 @@ export default function MembersAdmin({ client, currentMemberId }) {
               onChange={(event) => setDraft({ ...draft, googleEmail: event.target.value })}
             />
           </label>
+          {draft.id && (
+            <>
+              <label>
+                Personal link
+                <input
+                  readOnly
+                  value={personalUrl(draft.personalLink)}
+                  onFocus={(event) => event.target.select()}
+                />
+              </label>
+              <div className="admin-form-actions">
+                <button
+                  type="button"
+                  disabled={draft.id === currentMemberId || busy}
+                  title={draft.id === currentMemberId ? 'Regenerate your link from another administrator account.' : undefined}
+                  onClick={() => runAction({ kind: 'regenerate', member: draft.original })}
+                >
+                  Regenerate link
+                </button>
+              </div>
+            </>
+          )}
           <fieldset>
             <legend>Roles</legend>
             <label className="admin-role-option">

@@ -613,13 +613,15 @@ body {
   background: var(--color-banner);
 }
 
-.admin-form > label {
+.admin-form > label,
+.admin-link-result label {
   display: grid;
   gap: 6px;
   font-weight: 700;
 }
 
-.admin-form input:not([type="checkbox"]) {
+.admin-form input:not([type="checkbox"]),
+.admin-link-result input {
   width: 100%;
   min-height: 42px;
   padding: 8px 10px;
@@ -696,11 +698,6 @@ body {
 .admin-notice,
 .admin-link-result {
   border-left-color: var(--color-accent);
-}
-
-.admin-link-result p {
-  margin: 0 0 10px;
-  overflow-wrap: anywhere;
 }
 
 .admin-subtabs {
