@@ -264,6 +264,13 @@ export default function MembersAdmin({ client, currentMemberId }) {
                 >
                   Regenerate link
                 </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => window.open(personalUrl(draft.personalLink), '_blank', 'noopener,noreferrer')}
+                >
+                  Login as
+                </button>
               </div>
             </>
           )}

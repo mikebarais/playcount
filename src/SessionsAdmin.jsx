@@ -72,7 +72,7 @@ function emptySessionDraft() {
     time: '',
     durationMinutes: '120',
     location: '',
-    name: '',
+    description: '',
     type: 'training',
   };
 }
@@ -129,7 +129,7 @@ export default function SessionsAdmin({ client }) {
     resetFeedback();
 
     const location = creating.location.trim();
-    const name = creating.name.trim();
+    const description = creating.description.trim();
     const time = normalizeTime(creating.time);
     const durationMinutes = Number(creating.durationMinutes);
 
@@ -153,11 +153,7 @@ export default function SessionsAdmin({ client }) {
       setError('Enter a location.');
       return;
     }
-    if (!name) {
-      setError('Enter a name for the session.');
-      return;
-    }
-    runAction({ kind: 'create', values: { ...creating, time, location, name, durationMinutes, minPlayers: null } });
+    runAction({ kind: 'create', values: { ...creating, time, location, description, durationMinutes, minPlayers: null } });
   }
 
   function beginEdit(session) {
@@ -282,12 +278,11 @@ export default function SessionsAdmin({ client }) {
         <form className="admin-inline-form admin-create-session" onSubmit={stageCreate}>
           <h3>New exceptional session</h3>
           <label>
-            Name
+            Description (optional)
             <input
               maxLength={120}
-              required
-              value={creating.name}
-              onChange={(event) => setCreating({ ...creating, name: event.target.value })}
+              value={creating.description}
+              onChange={(event) => setCreating({ ...creating, description: event.target.value })}
             />
           </label>
           <label>
@@ -356,7 +351,7 @@ export default function SessionsAdmin({ client }) {
             const end = endTime(session.local_time, session.duration);
             const isEditing = editing?.sessionId === session.session_id;
             const isCancelling = cancelling?.sessionId === session.session_id;
-            const title = session.event_name;
+            const title = session.event_description;
 
             return (
               <li

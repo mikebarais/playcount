@@ -72,13 +72,13 @@ Each club uses its own application deployment and Supabase project.
 - An administrator can manually create an exceptional session.
 - An exceptional session is a training session or a match.
 - An exceptional session does not need to follow any recurring weekly pattern.
-- The administrator defines at least the name, type, date, time, duration, and location.
+- The administrator defines the type, date, time, duration, and location; a description (for example, match opponents) is optional.
 - Exceptional sessions appear in the same chronological session list as recurring sessions.
 - They use the same attendance/RSVP mechanism as regular sessions.
 - Exceptional sessions can subsequently be modified or cancelled by an administrator.
-- The Sessions admin tab has an "Add exceptional session" button. The form takes a name, a type (Training or Match), the date (today or later), start time, duration in minutes, location, and an optional minimum number of players.
-- Start times are typed as HH:MM; the field suggests whole and half hours but accepts any minute (for example 09:37).
-- Session types are stored as language-neutral codes (`training`, `match`). Regular weekly sessions have no type and count as training.
+- The Sessions admin tab has an "Add exceptional session" button. The form takes an optional description, a type (Training or Match), the date (today or later), start time, duration in minutes, and location; exceptional sessions have no minimum-player field.
+- Start times use a time input that accepts any minute (for example 09:37).
+- Session types are stored as language-neutral codes (`regular`, `training`, `match`). Regular weekly sessions use `regular` and count as training.
 - Session cards are color-coded with theme colors in the attendance matrix and the admin session list: regular weekly sessions use the base theme, exceptional trainings the `training` color, matches the `match` color, and cancelled sessions the `cancelled` color (grey by default).
 - Exceptional sessions appear in members' attendance matrix like regular sessions, so players can mark their presence. Switching from Administration back to Attendance reloads the matrix.
 
@@ -90,7 +90,7 @@ Each club uses its own application deployment and Supabase project.
 - An administrator can cancel an individual session.
 - A cancelled session can have a cancellation reason.
 - Cancellation affects the individual session only and does not change the recurring weekly pattern.
-- The Administration area has a Sessions sub-tab, first and before Members, listing regular and exceptional sessions from today through the next 4 weeks in chronological order. For each session an administrator can change the start time (on the same date), location, and minimum players (empty restores the pattern default for regular sessions, or means no minimum for exceptional sessions); cancel it with an optional reason or restore it; and add or remove exceptional players by name. These session changes are saved immediately, without a confirmation step.
+- The Administration area has a Sessions sub-tab, first and before Members, listing regular and exceptional sessions from today through the next 4 weeks in chronological order. For each session an administrator can change the start time (on the same date) and location; regular sessions also allow changing minimum players (empty restores the pattern default). An administrator can cancel a session with an optional reason or restore it, and add or remove exceptional players by name. These session changes are saved immediately, without a confirmation step.
 - Duration overrides are not yet editable in the interface.
 
 ## 8. Attendance / RSVP
@@ -116,7 +116,7 @@ Each club uses its own application deployment and Supabase project.
 ## 10. Minimum Participation and Viability
 
 - Each recurring schedule pattern has its own configurable minimum number of participants.
-- A session uses its schedule pattern's minimum unless a session-specific minimum is set. An exceptional session may have its own minimum, or none.
+- A regular session uses its schedule pattern's minimum unless a session-specific minimum is set. Exceptional sessions have no displayed minimum.
 - The application calculates the total confirmed participants for a session from registered players marked present plus exceptional participants added by the administrator.
 - A footer row below the player and guest rows displays each session's current participant count against its effective minimum (session override, or schedule-pattern minimum), and states whether the minimum is met or how many more participants are needed. A session without a minimum shows only its participant count.
 
@@ -229,8 +229,8 @@ erDiagram
 		interval duration "inherits schedule pattern unless overridden"
 		text location
 		integer min_players "nullable; overrides the pattern minimum, optional for exceptional sessions"
-		text event_name "required for exceptional sessions"
-		text event_type "training or match; null for regular sessions"
+		text event_description "optional description for exceptional sessions"
+		text event_type "regular for weekly sessions; training or match for exceptional sessions"
 		text status
 		text cancellation_reason
 	}

@@ -3,10 +3,8 @@ export const sessionTypes = [
   { value: 'match', label: 'Match' },
 ];
 
-// Regular sessions come from a weekly schedule pattern; exceptional ones are training or match.
 export function sessionKind(session) {
-  const exceptional = session.is_exceptional ?? session.schedule_pattern_id === null;
-  if (!exceptional) return 'regular';
+  if (session.event_type === 'regular') return 'regular';
   return session.event_type === 'match' ? 'match' : 'training';
 }
 

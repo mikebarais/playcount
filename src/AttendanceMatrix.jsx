@@ -50,7 +50,7 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
               const startsAt = new Date(session.starts_at);
               const endsAt = addInterval(startsAt, session.duration);
               const cancelled = session.status === 'cancelled';
-              const title = session.event_name;
+              const title = session.event_description;
 
               return (
                 <th

@@ -51,7 +51,7 @@ export async function createSession(client, session) {
     p_start_time: session.time,
     p_duration: `${session.durationMinutes} minutes`,
     p_location: session.location,
-    p_event_name: session.name,
+    p_event_description: session.description || null,
     p_event_type: session.type,
     p_min_players: session.minPlayers,
   });
