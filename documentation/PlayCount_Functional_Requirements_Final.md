@@ -70,14 +70,16 @@ Each club uses its own application deployment and Supabase project.
 ## 6. Exceptional Sessions
 
 - An administrator can manually create an exceptional session.
-- An exceptional session can be a training session, match, or other relevant sporting event.
+- An exceptional session is a training session or a match.
 - An exceptional session does not need to follow any recurring weekly pattern.
-- The administrator defines at least the date, time, duration, location, and session/event type or name.
+- The administrator defines at least the name, type, date, time, duration, and location.
 - Exceptional sessions appear in the same chronological session list as recurring sessions.
 - They use the same attendance/RSVP mechanism as regular sessions.
 - Exceptional sessions can subsequently be modified or cancelled by an administrator.
-- The Sessions admin tab has an "Add exceptional session" button. The form takes the date (today or later), start time, duration in minutes, location, type (training, match, or other event), optional name, and minimum players; creation requires confirmation.
-- Session types are stored as language-neutral codes (`training`, `match`, `other`).
+- The Sessions admin tab has an "Add exceptional session" button. The form takes a name, a type (Training or Match), the date (today or later), start time, duration in minutes, location, and an optional minimum number of players.
+- Start times are typed as HH:MM; the field suggests whole and half hours but accepts any minute (for example 09:37).
+- Session types are stored as language-neutral codes (`training`, `match`). Regular weekly sessions have no type and count as training.
+- Training and match sessions are color-coded in the attendance matrix and the admin session list: training uses the club's `training` theme color (green by default), and matches its `match` theme color (red by default).
 
 ## 7. Session Exceptions and Cancellation
 
@@ -87,7 +89,7 @@ Each club uses its own application deployment and Supabase project.
 - An administrator can cancel an individual session.
 - A cancelled session can have a cancellation reason.
 - Cancellation affects the individual session only and does not change the recurring weekly pattern.
-- The Administration area has a Sessions sub-tab, first and before Members, listing regular and exceptional sessions from today through the next 4 weeks in chronological order. For each session an administrator can change the start time (on the same date), location, and minimum players (empty restores the pattern default for regular sessions; exceptional sessions always need one); cancel it with an optional reason or restore it; and add or remove exceptional players by name. Every change requires explicit confirmation.
+- The Administration area has a Sessions sub-tab, first and before Members, listing regular and exceptional sessions from today through the next 4 weeks in chronological order. For each session an administrator can change the start time (on the same date), location, and minimum players (empty restores the pattern default for regular sessions, or means no minimum for exceptional sessions); cancel it with an optional reason or restore it; and add or remove exceptional players by name. These session changes are saved immediately, without a confirmation step.
 - Duration overrides are not yet editable in the interface.
 
 ## 8. Attendance / RSVP
@@ -113,9 +115,9 @@ Each club uses its own application deployment and Supabase project.
 ## 10. Minimum Participation and Viability
 
 - Each recurring schedule pattern has its own configurable minimum number of participants.
-- A session uses its schedule pattern's minimum unless a session-specific minimum is set. An exceptional session without a recurring pattern must define its own minimum.
+- A session uses its schedule pattern's minimum unless a session-specific minimum is set. An exceptional session may have its own minimum, or none.
 - The application calculates the total confirmed participants for a session from registered players marked present plus exceptional participants added by the administrator.
-- A footer row below the player and guest rows displays each session's current participant count against its effective minimum (session override, or schedule-pattern minimum), and states whether the minimum is met or how many more participants are needed.
+- A footer row below the player and guest rows displays each session's current participant count against its effective minimum (session override, or schedule-pattern minimum), and states whether the minimum is met or how many more participants are needed. A session without a minimum shows only its participant count.
 
 ## 11. Main Attendance Interface
 
@@ -156,7 +158,7 @@ The principal attendance view is a chronological attendance matrix designed for 
 - A club administrator can define an announcement message.
 - The announcement is displayed prominently in the player-facing session view.
 - The announcement is associated with the club rather than with an individual player.
-- Each club defines its color theme in the `clubs.theme` row (`page`, `banner`, `text`, `accent`, `shape`, `rule` hex colors); the frontend applies it and falls back to neutral defaults.
+- Each club defines its color theme in the `clubs.theme` row (`page`, `banner`, `text`, `accent`, `shape`, `rule`, `training`, `match` hex colors); the frontend applies it and falls back to neutral defaults.
 - A club can have a logo, stored in the public `branding` storage bucket and referenced by `clubs.logo_path`. Signed-in members see it in the banner corner.
 
 ## 15. Administrator Management
@@ -165,7 +167,7 @@ The principal attendance view is a chronological attendance matrix designed for 
 - An administrator has a separate Administration area for member management, apart from the attendance interface.
 - An administrator can create a member with a name, optional Google email, and player/admin roles; the database generates a unique UUID personal link.
 - An administrator can view the member list and copy personal links, edit a member's name, email, and roles, regenerate a member's link, and permanently delete a member.
-- Every member change is staged and requires explicit confirmation before it is sent to the database.
+- Member creation, edits, and link regeneration are saved immediately. Only deleting a member requires explicit confirmation.
 - Regenerating a link blocks future personal-link exchanges; already-issued sessions remain valid until their one-hour expiry.
 - Deleting a member also deletes their attendance history. An administrator cannot delete themself or remove their own admin role.
 - A Google identity/email can optionally be associated with a member profile for Google sign-in.
@@ -225,9 +227,9 @@ erDiagram
 		timestamptz starts_at
 		interval duration "inherits schedule pattern unless overridden"
 		text location
-		integer min_players "nullable override; required for exceptional sessions"
-		text event_name
-		text event_type
+		integer min_players "nullable; overrides the pattern minimum, optional for exceptional sessions"
+		text event_name "required for exceptional sessions"
+		text event_type "training or match; null for regular sessions"
 		text status
 		text cancellation_reason
 	}

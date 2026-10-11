@@ -6,7 +6,7 @@ import {
   regenerateMemberLink,
   updateMember,
 } from './adminApi';
-import ConfirmDialog, { ChangeSummary } from './ConfirmDialog';
+import ConfirmDialog from './ConfirmDialog';
 import { getPersonalPagePath } from './supabaseClient';
 
 function emptyDraft() {
@@ -23,23 +23,11 @@ function personalUrl(personalLink) {
   return new URL(getPersonalPagePath(personalLink), window.location.origin).toString();
 }
 
-function getSaveSummary(pending) {
-  const fields = [
-    ['Name', pending.member.name, pending.original?.name],
-    ['Google email', pending.member.googleEmail || 'None', pending.original?.google_email || 'None'],
-    ['Roles', roleNames(pending.member), pending.original ? roleNames(pending.original) : null],
-  ];
-
-  return fields
-    .filter(([, value, previous]) => previous === null || value !== previous)
-    .map(([label, value, previous]) => ({ label, value, previous: previous ?? null }));
-}
-
 export default function MembersAdmin({ client, currentMemberId }) {
   const [members, setMembers] = useState([]);
   const [mode, setMode] = useState('list');
   const [draft, setDraft] = useState(null);
-  const [pending, setPending] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [createdLink, setCreatedLink] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -76,7 +64,6 @@ export default function MembersAdmin({ client, currentMemberId }) {
     setMessage('');
     setCreatedLink(null);
     setDraft(emptyDraft());
-    setPending(null);
     setMode('form');
   }
 
@@ -92,7 +79,6 @@ export default function MembersAdmin({ client, currentMemberId }) {
       isAdmin: member.is_admin,
       original: member,
     });
-    setPending(null);
     setMode('form');
   }
 
@@ -113,21 +99,22 @@ export default function MembersAdmin({ client, currentMemberId }) {
       return;
     }
 
-    setPending({
+    runAction({
       kind: 'save',
       member: { ...draft, name: draft.name.trim(), googleEmail: draft.googleEmail.trim() },
-      original: draft.original || null,
+      isNew: !draft.id,
     });
-    setMode('confirm');
   }
 
-  function stageAction(kind, member) {
+  function beginAction(kind, member) {
     setError('');
     setMessage('');
     setCreatedLink(null);
-    setDraft(null);
-    setPending({ kind, member });
-    setMode('confirm');
+    if (kind === 'delete') {
+      setDeleting(member);
+    } else {
+      runAction({ kind, member });
+    }
   }
 
   async function copyLink(link, memberName) {
@@ -140,33 +127,32 @@ export default function MembersAdmin({ client, currentMemberId }) {
     }
   }
 
-  async function confirmPending() {
-    if (!pending) return;
-
+  // Only member deletion goes through the confirmation dialog first.
+  async function runAction(action) {
     setBusy(true);
     setError('');
     setMessage('');
     try {
-      if (pending.kind === 'save') {
-        if (pending.original) {
-          await updateMember(client, pending.member);
-          setMessage('Member changes saved.');
-        } else {
-          const created = await createMember(client, pending.member);
+      if (action.kind === 'save') {
+        if (action.isNew) {
+          const created = await createMember(client, action.member);
           setCreatedLink(created.personal_link);
           setMessage('Member created. Share this personal link securely.');
+        } else {
+          await updateMember(client, action.member);
+          setMessage('Member changes saved.');
         }
         setDraft(null);
-      } else if (pending.kind === 'regenerate') {
-        const newLink = await regenerateMemberLink(client, pending.member.member_id);
+        setMode('list');
+      } else if (action.kind === 'regenerate') {
+        const newLink = await regenerateMemberLink(client, action.member.member_id);
         setCreatedLink(newLink);
-        setMessage(`Personal link regenerated for ${pending.member.name}. The old link cannot start another session; tokens already issued can remain valid for up to one hour.`);
-      } else if (pending.kind === 'delete') {
-        await deleteMember(client, pending.member.member_id);
-        setMessage(`${pending.member.name} deleted. Their attendance history was also deleted.`);
+        setMessage(`Personal link regenerated for ${action.member.name}. The old link cannot start another session; tokens already issued can remain valid for up to one hour.`);
+      } else if (action.kind === 'delete') {
+        await deleteMember(client, action.member.member_id);
+        setMessage(`${action.member.name} deleted. Their attendance history was also deleted.`);
+        setDeleting(null);
       }
-      setPending(null);
-      setMode('list');
       try {
         await refreshMembers();
       } catch (refreshError) {
@@ -179,24 +165,14 @@ export default function MembersAdmin({ client, currentMemberId }) {
     }
   }
 
-  function cancelDialog() {
-    setPending(null);
+  function cancelDelete() {
+    setDeleting(null);
     setError('');
-    setMode(draft ? 'form' : 'list');
   }
-
-  const dialog = {
-    save: {
-      title: pending?.original ? 'Confirm member changes' : 'Confirm new member',
-      confirmLabel: 'Confirm and save',
-    },
-    regenerate: { title: 'Regenerate personal link', confirmLabel: 'Confirm regeneration' },
-    delete: { title: 'Delete member', confirmLabel: 'Confirm deletion' },
-  }[pending?.kind];
 
   return (
     <div className="admin-section">
-      {error && mode !== 'confirm' && <p className="admin-alert" role="alert">{error}</p>}
+      {error && !deleting && <p className="admin-alert" role="alert">{error}</p>}
       {message && <p className="admin-notice" role="status">{message}</p>}
       {createdLink && (
         <div className="admin-link-result">
@@ -239,9 +215,9 @@ export default function MembersAdmin({ client, currentMemberId }) {
                       <button type="button" onClick={() => beginEdit(memberRow)}>Edit</button>
                       <button
                         type="button"
-                        disabled={isCurrent}
+                        disabled={isCurrent || busy}
                         title={isCurrent ? 'Regenerate your link from another administrator account.' : undefined}
-                        onClick={() => stageAction('regenerate', memberRow)}
+                        onClick={() => beginAction('regenerate', memberRow)}
                       >
                         Regenerate link
                       </button>
@@ -250,7 +226,7 @@ export default function MembersAdmin({ client, currentMemberId }) {
                         className="admin-danger-button"
                         disabled={isCurrent}
                         title={isCurrent ? 'You cannot delete your own account.' : undefined}
-                        onClick={() => stageAction('delete', memberRow)}
+                        onClick={() => beginAction('delete', memberRow)}
                       >
                         Delete
                       </button>
@@ -309,27 +285,21 @@ export default function MembersAdmin({ client, currentMemberId }) {
             <button className="admin-secondary-button" type="button" onClick={() => setMode('list')}>
               Cancel
             </button>
-            <button className="admin-primary-button" type="submit">Review changes</button>
+            <button className="admin-primary-button" type="submit" disabled={busy}>Save</button>
           </div>
         </form>
       )}
 
-      {mode === 'confirm' && pending && (
+      {deleting && (
         <ConfirmDialog
-          title={dialog.title}
-          confirmLabel={dialog.confirmLabel}
+          title="Delete member"
+          confirmLabel="Delete member"
           busy={busy}
           error={error}
-          onCancel={cancelDialog}
-          onConfirm={confirmPending}
+          onCancel={cancelDelete}
+          onConfirm={() => runAction({ kind: 'delete', member: deleting })}
         >
-          {pending.kind === 'save' && <ChangeSummary changes={getSaveSummary(pending)} />}
-          {pending.kind === 'regenerate' && (
-            <p>The old link will no longer start a session. Tokens already issued can remain valid for up to one hour. A new link will be generated for <strong>{pending.member.name}</strong>.</p>
-          )}
-          {pending.kind === 'delete' && (
-            <p>Permanently delete <strong>{pending.member.name}</strong>? Their attendance responses will also be deleted. This cannot be undone. Their Google account, if any, is not deleted.</p>
-          )}
+          <p>Permanently delete <strong>{deleting.name}</strong>? Their attendance responses will also be deleted. This cannot be undone. Their Google account, if any, is not deleted.</p>
         </ConfirmDialog>
       )}
     </div>

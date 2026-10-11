@@ -14,7 +14,7 @@ import './App.css';
 const personalLinkPattern = /^\/p\/([^/]+)\/?$/;
 const sessionWindowDays = 28;
 const maxSessions = 6;
-const themeKeys = ['page', 'banner', 'text', 'accent', 'shape', 'rule'];
+const themeKeys = ['page', 'banner', 'text', 'accent', 'shape', 'rule', 'training', 'match'];
 const hexColorPattern = /^#[0-9a-f]{6}$/i;
 
 function applyTheme(theme) {

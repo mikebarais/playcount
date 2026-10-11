@@ -5,6 +5,8 @@
   --color-accent: #e2ed75;
   --color-shape: #e2ed75;
   --color-rule: #ed7355;
+  --color-training: #2e9e5b;
+  --color-match: #d64545;
   font-family: "Arial Narrow", "Franklin Gothic Medium", Impact, sans-serif;
   color: var(--color-text);
   background: var(--color-page);
@@ -114,6 +116,16 @@ body {
   border-top: 6px solid var(--color-shape);
   text-align: center;
   vertical-align: top;
+}
+
+.session-head.session-training {
+  border-top-color: var(--color-training);
+  background: color-mix(in srgb, var(--color-training) 14%, var(--color-banner));
+}
+
+.session-head.session-match {
+  border-top-color: var(--color-match);
+  background: color-mix(in srgb, var(--color-match) 16%, var(--color-banner));
 }
 
 .session-head span {
@@ -671,29 +683,6 @@ body {
   line-height: 1.5;
 }
 
-.admin-change-summary {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.admin-change-summary div {
-  display: grid;
-  grid-template-columns: minmax(90px, 0.35fr) minmax(0, 1fr);
-  gap: 12px;
-}
-
-.admin-change-summary dt {
-  color: var(--color-accent);
-  font-weight: 700;
-}
-
-.admin-change-summary dd {
-  min-width: 0;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
 .admin-alert,
 .admin-notice,
 .admin-link-result {
@@ -752,6 +741,26 @@ body {
   padding: 16px;
   border-left: 4px solid var(--color-shape);
   background: var(--color-banner);
+}
+
+.admin-session.session-training {
+  border-left-color: var(--color-training);
+  background: color-mix(in srgb, var(--color-training) 12%, var(--color-banner));
+}
+
+.admin-session.session-match {
+  border-left-color: var(--color-match);
+  background: color-mix(in srgb, var(--color-match) 14%, var(--color-banner));
+}
+
+.session-training .admin-session-kind {
+  border-color: var(--color-training);
+  color: var(--color-training);
+}
+
+.session-match .admin-session-kind {
+  border-color: var(--color-match);
+  color: var(--color-match);
 }
 
 .admin-session.is-cancelled {

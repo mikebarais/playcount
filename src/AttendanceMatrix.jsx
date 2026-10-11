@@ -1,4 +1,4 @@
-import { sessionTitle } from './sessionTypes';
+import { sessionKind } from './sessionTypes';
 
 const intervalPattern = /^(\d+):(\d{2}):(\d{2})$/;
 
@@ -50,13 +50,13 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
               const startsAt = new Date(session.starts_at);
               const endsAt = addInterval(startsAt, session.duration);
               const cancelled = session.status === 'cancelled';
-              const title = sessionTitle(session);
+              const title = session.event_name;
 
               return (
                 <th
                   key={session.id}
                   scope="col"
-                  className={cancelled ? 'session-head session-cancelled' : 'session-head'}
+                  className={`session-head session-${sessionKind(session)}${cancelled ? ' session-cancelled' : ''}`}
                   title={session.location}
                 >
                   <span className="session-date">{dateFormat.format(startsAt)}</span>
@@ -128,15 +128,22 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
             {sessions.map((session) => {
               const minimum = session.min_players ?? session.schedule_patterns?.min_players;
               const participantCount = participantCounts.get(session.id);
-              const minimumReached = Number.isInteger(minimum) && participantCount >= minimum;
-              const thresholdLabel = Number.isInteger(minimum)
-                ? minimumReached ? 'Minimum met' : `${minimum - participantCount} needed`
-                : 'Minimum not set';
+
+              if (!Number.isInteger(minimum)) {
+                return (
+                  <td key={session.id}>
+                    <span className="session-count">{participantCount} players</span>
+                  </td>
+                );
+              }
+
+              const minimumReached = participantCount >= minimum;
+              const thresholdLabel = minimumReached ? 'Minimum met' : `${minimum - participantCount} needed`;
 
               return (
                 <td key={session.id}>
                   <span className={minimumReached ? 'session-count is-met' : 'session-count is-under'}>
-                    {participantCount} / {minimum ?? '?'} players
+                    {participantCount} / {minimum} players
                   </span>
                   <span className={minimumReached ? 'session-threshold is-met' : 'session-threshold is-under'}>
                     {thresholdLabel}

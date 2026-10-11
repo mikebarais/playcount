@@ -1,18 +1,3 @@
-export function ChangeSummary({ changes }) {
-  if (changes.length === 0) return <p>Nothing has changed.</p>;
-
-  return (
-    <dl className="admin-change-summary">
-      {changes.map(({ label, value, previous }) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{previous === null ? value : <>{previous} <span aria-hidden="true">→</span> {value}</>}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 export default function ConfirmDialog({ title, confirmLabel, busy, error, onCancel, onConfirm, children }) {
   return (
     <div className="admin-dialog-backdrop">
