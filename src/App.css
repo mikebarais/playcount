@@ -7,6 +7,7 @@
   --color-rule: #ed7355;
   --color-training: #2e9e5b;
   --color-match: #d64545;
+  --color-cancelled: #8a8f98;
   font-family: "Arial Narrow", "Franklin Gothic Medium", Impact, sans-serif;
   color: var(--color-text);
   background: var(--color-page);
@@ -201,9 +202,10 @@ body {
   display: block;
 }
 
-.session-cancelled {
-  border-top-color: var(--color-rule);
-  opacity: 0.6;
+.session-head.session-cancelled {
+  border-top-color: var(--color-cancelled);
+  background: color-mix(in srgb, var(--color-cancelled) 25%, var(--color-banner));
+  opacity: 0.75;
 }
 
 .session-cancelled .session-time {
@@ -764,7 +766,13 @@ body {
 }
 
 .admin-session.is-cancelled {
-  border-left-color: var(--color-rule);
+  border-left-color: var(--color-cancelled);
+  background: color-mix(in srgb, var(--color-cancelled) 25%, var(--color-banner));
+}
+
+.admin-session.is-cancelled .admin-session-kind {
+  border-color: var(--color-cancelled);
+  color: var(--color-cancelled);
 }
 
 .admin-session-header {

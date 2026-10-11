@@ -13,8 +13,8 @@ import './App.css';
 
 const personalLinkPattern = /^\/p\/([^/]+)\/?$/;
 const sessionWindowDays = 28;
-const maxSessions = 6;
-const themeKeys = ['page', 'banner', 'text', 'accent', 'shape', 'rule', 'training', 'match'];
+const maxSessions = 10;
+const themeKeys = ['page', 'banner', 'text', 'accent', 'shape', 'rule', 'training', 'match', 'cancelled'];
 const hexColorPattern = /^#[0-9a-f]{6}$/i;
 
 function applyTheme(theme) {
@@ -58,7 +58,7 @@ async function loadAttendanceBoard(memberClient) {
 
   const { data: sessions, error } = await memberClient
     .from('sessions')
-    .select('id, starts_at, duration, location, event_name, event_type, status, cancellation_reason, min_players, schedule_patterns(min_players)')
+    .select('id, schedule_pattern_id, starts_at, duration, location, event_name, event_type, status, cancellation_reason, min_players, schedule_patterns(min_players)')
     .gte('starts_at', windowStart.toISOString())
     .lt('starts_at', windowEnd.toISOString())
     .order('starts_at')
@@ -191,6 +191,19 @@ export default function App() {
     };
   }, []);
 
+  // Reload so sessions created or changed in Administration show up without a page refresh.
+  async function openAttendance() {
+    if (activeArea === 'attendance') return;
+    setActiveArea('attendance');
+    try {
+      setBoard(await loadAttendanceBoard(member.client));
+      setSessionsError(false);
+    } catch (reloadError) {
+      console.error('Unable to reload sessions:', reloadError);
+      setSessionsError(true);
+    }
+  }
+
   async function handleGoogleSignIn() {
     setSignInFailed(false);
     const { error } = await signInWithGoogle(authClient);
@@ -291,7 +304,7 @@ export default function App() {
             type="button"
             className={activeArea === 'attendance' ? 'area-tile is-selected' : 'area-tile'}
             aria-current={activeArea === 'attendance' ? 'page' : undefined}
-            onClick={() => setActiveArea('attendance')}
+            onClick={openAttendance}
           >
             Attendance
           </button>

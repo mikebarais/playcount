@@ -61,7 +61,7 @@ Each club uses its own application deployment and Supabase project.
 - Each pattern contains the day of week, default time, default duration, and default location.
 - Each pattern has its own minimum required number of participants.
 - The application automatically generates upcoming sessions from these recurring patterns.
-- When a member opens the application, any missing pattern sessions from today through the next 4 weeks are created, in the club's timezone. The member then sees at most 6 sessions (recurring and exceptional) in that window, including cancelled ones.
+- When a member opens the application, any missing pattern sessions from today through the next 4 weeks are created, in the club's timezone. The member then sees at most 10 sessions (recurring and exceptional) in that window, including cancelled ones.
 - Each generated session records the pattern date it was created for (`occurrence_date`), so a per-date override or cancellation never causes that date to be generated again.
 - The upcoming sessions are ordered chronologically.
 - The system must support different patterns for the same club, for example Thursday and Saturday sessions.
@@ -79,7 +79,8 @@ Each club uses its own application deployment and Supabase project.
 - The Sessions admin tab has an "Add exceptional session" button. The form takes a name, a type (Training or Match), the date (today or later), start time, duration in minutes, location, and an optional minimum number of players.
 - Start times are typed as HH:MM; the field suggests whole and half hours but accepts any minute (for example 09:37).
 - Session types are stored as language-neutral codes (`training`, `match`). Regular weekly sessions have no type and count as training.
-- Training and match sessions are color-coded in the attendance matrix and the admin session list: training uses the club's `training` theme color (green by default), and matches its `match` theme color (red by default).
+- Session cards are color-coded with theme colors in the attendance matrix and the admin session list: regular weekly sessions use the base theme, exceptional trainings the `training` color, matches the `match` color, and cancelled sessions the `cancelled` color (grey by default).
+- Exceptional sessions appear in members' attendance matrix like regular sessions, so players can mark their presence. Switching from Administration back to Attendance reloads the matrix.
 
 ## 7. Session Exceptions and Cancellation
 
@@ -158,7 +159,7 @@ The principal attendance view is a chronological attendance matrix designed for 
 - A club administrator can define an announcement message.
 - The announcement is displayed prominently in the player-facing session view.
 - The announcement is associated with the club rather than with an individual player.
-- Each club defines its color theme in the `clubs.theme` row (`page`, `banner`, `text`, `accent`, `shape`, `rule`, `training`, `match` hex colors); the frontend applies it and falls back to neutral defaults.
+- Each club defines its color theme in the `clubs.theme` row (`page`, `banner`, `text`, `accent`, `shape`, `rule`, `training`, `match`, `cancelled` hex colors); the frontend applies it and falls back to neutral defaults.
 - A club can have a logo, stored in the public `branding` storage bucket and referenced by `clubs.logo_path`. Signed-in members see it in the banner corner, and it is used as the browser tab icon.
 
 ## 15. Administrator Management
