@@ -26,6 +26,16 @@ function applyTheme(theme) {
   }
 }
 
+function applyFavicon(url) {
+  let link = document.querySelector('link[rel="icon"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'icon';
+    document.head.appendChild(link);
+  }
+  link.href = url;
+}
+
 function getPersonalLink(pathname = window.location.pathname) {
   const match = pathname.match(personalLinkPattern);
   if (!match) return null;
@@ -102,13 +112,13 @@ export default function App() {
 
         if (error || !data) throw error || new Error('Club row was not found.');
 
-        setClub({
-          ...data,
-          logoUrl: data.logo_path
-            ? supabase.storage.from('branding').getPublicUrl(data.logo_path).data.publicUrl
-            : null,
-        });
+        const logoUrl = data.logo_path
+          ? supabase.storage.from('branding').getPublicUrl(data.logo_path).data.publicUrl
+          : null;
+
+        setClub({ ...data, logoUrl });
         applyTheme(data.theme);
+        if (logoUrl) applyFavicon(logoUrl);
         document.title = data.name;
 
         async function showMember(memberClient, row) {

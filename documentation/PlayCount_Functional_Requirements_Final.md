@@ -159,7 +159,7 @@ The principal attendance view is a chronological attendance matrix designed for 
 - The announcement is displayed prominently in the player-facing session view.
 - The announcement is associated with the club rather than with an individual player.
 - Each club defines its color theme in the `clubs.theme` row (`page`, `banner`, `text`, `accent`, `shape`, `rule`, `training`, `match` hex colors); the frontend applies it and falls back to neutral defaults.
-- A club can have a logo, stored in the public `branding` storage bucket and referenced by `clubs.logo_path`. Signed-in members see it in the banner corner.
+- A club can have a logo, stored in the public `branding` storage bucket and referenced by `clubs.logo_path`. Signed-in members see it in the banner corner, and it is used as the browser tab icon.
 
 ## 15. Administrator Management
 
