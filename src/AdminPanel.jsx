@@ -5,8 +5,8 @@ import SessionsAdmin from './SessionsAdmin';
 
 const sections = [
   { id: 'sessions', label: 'Sessions' },
-  { id: 'patterns', label: 'Patterns' },
   { id: 'members', label: 'Members' },
+  { id: 'patterns', label: 'Patterns' },
 ];
 
 export default function AdminPanel({ client, currentMemberId }) {
