@@ -90,18 +90,20 @@ export default function PatternsAdmin({ client }) {
     <div className="admin-section">
       {error && <p className="admin-alert" role="alert">{error}</p>}
       {message && <p className="admin-notice" role="status">{message}</p>}
-      <div className="admin-list-toolbar">
-        <p>{patterns.length} weekly {patterns.length === 1 ? 'pattern' : 'patterns'}</p>
-        <button className="admin-primary-button" type="button" disabled={busy} onClick={() => { setDraft(emptyDraft()); setError(''); setMessage(''); }}>
-          Add pattern
-        </button>
-      </div>
+      {!draft && (
+        <div className="admin-list-toolbar">
+          <p>{patterns.length} weekly {patterns.length === 1 ? 'pattern' : 'patterns'}</p>
+          <button className="admin-primary-button" type="button" disabled={busy} onClick={() => { setDraft(emptyDraft()); setError(''); setMessage(''); }}>
+            Add pattern
+          </button>
+        </div>
+      )}
       {draft && (
         <form className="admin-inline-form admin-create-session" onSubmit={savePattern}>
           <h3>{draft.id ? 'Edit weekly pattern' : 'New weekly pattern'}</h3>
           <label>
             Day
-            <select required value={draft.day} onChange={(event) => setDraft({ ...draft, day: event.target.value })}>
+            <select autoFocus required value={draft.day} onChange={(event) => setDraft({ ...draft, day: event.target.value })}>
               <option value="" disabled>Select day</option>
               {days.map((day, index) => <option key={day} value={index}>{day}</option>)}
             </select>
@@ -128,7 +130,7 @@ export default function PatternsAdmin({ client }) {
           </div>
         </form>
       )}
-      {loading ? (
+      {!draft && (loading ? (
         <p role="status">Loading weekly patterns</p>
       ) : patterns.length === 0 ? (
         !error && <p>No weekly patterns.</p>
@@ -150,7 +152,7 @@ export default function PatternsAdmin({ client }) {
             </li>
           ))}
         </ul>
-      )}
+      ))}
     </div>
   );
 }
