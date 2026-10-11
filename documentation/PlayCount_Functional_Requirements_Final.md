@@ -122,18 +122,14 @@ Each club uses its own application deployment and Supabase project.
 
 ## 11. Main Attendance Interface
 
-The principal attendance view is a chronological attendance matrix designed for efficient use on a phone and, where appropriate, on larger screens.
+The principal attendance view shows one session's attendance at a time, with a chronological, horizontally scrollable row of session headers above it.
 
-- Columns represent sessions/events, sorted by date from earliest to latest.
-- The session columns can be scrolled horizontally.
-- The player name column stays fixed while scrolling; on any screen width at least the names and one session column are visible.
-- Each player can edit only their own cells; all other cells, and cells of cancelled sessions, are read-only.
-- When the page opens, horizontal scrolling is positioned on the next upcoming session.
-- Rows represent registered players.
-- Each player/session cell displays the player's current attendance status.
-- Exceptional participants added by an administrator are displayed as separate participant rows and are visually distinguishable from registered players.
-- The matrix allows the administrator to see multiple future sessions and the attendance status of all players in one view.
-- The same underlying attendance information is used by the player-facing view, while players only control their own status.
+- The first upcoming session is selected when the page opens; selecting another header displays that session's attendance.
+- Only the session headers scroll horizontally; player names and checkboxes remain in a fixed-width table below.
+- Registered players appear for every session, while exceptional participants appear only for the session to which they were added.
+- A player can edit only their own attendance checkbox; other players' responses, guests, and cancelled sessions are read-only.
+- The selected session displays its participant count and, for regular sessions, its effective minimum and threshold status.
+- Administrators and players use the same attendance view, with each member controlling only their own response.
 
 ## 12. Real-Time Attendance Information
 
