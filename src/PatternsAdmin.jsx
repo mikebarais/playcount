@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { createPattern, listPatterns, updatePattern } from './adminApi';
+import { createPattern, deletePattern, listPatterns, setPatternPaused, updatePattern } from './adminApi';
+import ConfirmDialog from './ConfirmDialog';
 
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const conversionWarning = 'Upcoming sessions from this pattern will become exceptional training sessions. Their attendance and cancellations remain unchanged. You can delete them individually.';
 
 function emptyDraft() {
   return { day: '', time: '', durationMinutes: '', location: '', minPlayers: '' };
@@ -13,6 +15,9 @@ export default function PatternsAdmin({ client }) {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [draft, setDraft] = useState(null);
+  const [pendingUpdate, setPendingUpdate] = useState(null);
+  const [pendingPause, setPendingPause] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -43,10 +48,11 @@ export default function PatternsAdmin({ client }) {
       durationMinutes: String(pattern.duration_minutes),
       location: pattern.location,
       minPlayers: String(pattern.min_players),
+      isPaused: pattern.is_paused,
     });
   }
 
-  async function savePattern(event) {
+  function stageSave(event) {
     event.preventDefault();
     setError('');
     setMessage('');
@@ -65,15 +71,34 @@ export default function PatternsAdmin({ client }) {
       return;
     }
 
+    if (draft.id) {
+      const original = patterns.find((pattern) => pattern.id === draft.id);
+      if (original && values.day === original.day_of_week && values.time === original.time.slice(0, 5)
+        && values.durationMinutes === original.duration_minutes && values.location === original.location
+        && values.minPlayers === original.min_players) {
+        setDraft(null);
+        setMessage('No changes to save.');
+        return;
+      }
+      setPendingUpdate(values);
+    } else {
+      savePattern(values);
+    }
+  }
+
+  async function savePattern(values) {
+    setPendingUpdate(null);
     setBusy(true);
     try {
-      if (draft.id) {
+      if (values.id) {
         await updatePattern(client, values);
       } else {
         await createPattern(client, values);
       }
       setDraft(null);
-      setMessage(draft.id ? 'Weekly pattern saved. Existing session dates and times are unchanged.' : 'Weekly pattern created.');
+      setMessage(values.id
+        ? values.isPaused ? 'Pattern saved. New sessions will be generated when resumed.' : 'Pattern saved. New sessions generated.'
+        : 'Weekly pattern created.');
       try {
         setPatterns((await listPatterns(client)) || []);
       } catch (refreshError) {
@@ -81,6 +106,46 @@ export default function PatternsAdmin({ client }) {
       }
     } catch (saveError) {
       setError(saveError.message || 'Unable to save the weekly pattern.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function togglePause(pattern, paused) {
+    setPendingPause(null);
+    setError('');
+    setMessage('');
+    setBusy(true);
+    try {
+      await setPatternPaused(client, pattern.id, paused);
+      setMessage(paused ? 'Pattern paused. Upcoming sessions are now exceptional.' : 'Pattern resumed. New sessions generated.');
+      try {
+        setPatterns((await listPatterns(client)) || []);
+      } catch (refreshError) {
+        setError(refreshError.message || 'The change was saved, but the pattern list could not be refreshed.');
+      }
+    } catch (saveError) {
+      setError(saveError.message || 'Unable to change the pattern status.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removePattern(pattern) {
+    setPendingDelete(null);
+    setError('');
+    setMessage('');
+    setBusy(true);
+    try {
+      await deletePattern(client, pattern.id);
+      setMessage('Pattern deleted. Upcoming sessions are now exceptional.');
+      try {
+        setPatterns((await listPatterns(client)) || []);
+      } catch (refreshError) {
+        setError(refreshError.message || 'The pattern was deleted, but the list could not be refreshed.');
+      }
+    } catch (saveError) {
+      setError(saveError.message || 'Unable to delete the weekly pattern.');
     } finally {
       setBusy(false);
     }
@@ -99,7 +164,7 @@ export default function PatternsAdmin({ client }) {
         </div>
       )}
       {draft && (
-        <form className="admin-inline-form admin-create-session" onSubmit={savePattern}>
+        <form className="admin-inline-form admin-create-session" onSubmit={stageSave}>
           <h3>{draft.id ? 'Edit weekly pattern' : 'New weekly pattern'}</h3>
           <label>
             Day
@@ -141,18 +206,61 @@ export default function PatternsAdmin({ client }) {
               <div className="admin-session-header">
                 <div className="admin-session-info">
                   <h3>{days[pattern.day_of_week]} at {pattern.time.slice(0, 5)}</h3>
+                  {pattern.is_paused && <p className="admin-session-status">Paused</p>}
                   <p>{pattern.location}</p>
                   <p>{pattern.duration_minutes} minutes</p>
                   <p>Minimum players: {pattern.min_players}</p>
                 </div>
                 <div className="admin-member-actions">
                   <button type="button" disabled={busy} onClick={() => beginEdit(pattern)}>Edit</button>
+                  <button type="button" disabled={busy} onClick={() => pattern.is_paused ? togglePause(pattern, false) : setPendingPause(pattern)}>
+                    {pattern.is_paused ? 'Resume' : 'Pause'}
+                  </button>
+                  <button type="button" className="admin-danger-button" disabled={busy} onClick={() => { setError(''); setMessage(''); setPendingDelete(pattern); }}>
+                    Delete
+                  </button>
                 </div>
               </div>
             </li>
           ))}
         </ul>
       ))}
+      {pendingUpdate && (
+        <ConfirmDialog
+          title="Update weekly pattern"
+          confirmLabel="Update pattern"
+          busy={busy}
+          error={error}
+          onCancel={() => setPendingUpdate(null)}
+          onConfirm={() => savePattern(pendingUpdate)}
+        >
+          <p>{conversionWarning} {pendingUpdate.isPaused ? 'New sessions will be generated when the pattern resumes.' : 'New sessions will be generated immediately.'}</p>
+        </ConfirmDialog>
+      )}
+      {pendingPause && (
+        <ConfirmDialog
+          title="Pause weekly pattern"
+          confirmLabel="Pause pattern"
+          busy={busy}
+          error={error}
+          onCancel={() => setPendingPause(null)}
+          onConfirm={() => togglePause(pendingPause, true)}
+        >
+          <p>{conversionWarning} The pattern will stop generating new sessions until you resume it.</p>
+        </ConfirmDialog>
+      )}
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Delete weekly pattern"
+          confirmLabel="Delete pattern"
+          busy={busy}
+          error={error}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => removePattern(pendingDelete)}
+        >
+          <p>{conversionWarning} The pattern will be removed and cannot be resumed. Past sessions retain their history.</p>
+        </ConfirmDialog>
+      )}
     </div>
   );
 }

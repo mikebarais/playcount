@@ -70,6 +70,19 @@ export async function updatePattern(client, pattern) {
   });
 }
 
+export async function setPatternPaused(client, patternId, paused) {
+  await invokeAdmin(client, 'admin_set_pattern_paused', {
+    p_pattern_id: patternId,
+    p_paused: paused,
+  });
+}
+
+export async function deletePattern(client, patternId) {
+  await invokeAdmin(client, 'admin_delete_pattern', {
+    p_pattern_id: patternId,
+  });
+}
+
 export async function createSession(client, session) {
   return invokeAdmin(client, 'admin_create_session', {
     p_local_date: session.date,
