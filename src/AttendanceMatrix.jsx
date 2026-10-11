@@ -126,7 +126,9 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
           <tr className="matrix-total">
             <th scope="row">Total present</th>
             {sessions.map((session) => {
-              const minimum = session.min_players ?? session.schedule_patterns?.min_players;
+              const minimum = session.schedule_pattern_id === null
+                ? null
+                : session.min_players ?? session.schedule_patterns?.min_players;
               const participantCount = participantCounts.get(session.id);
 
               if (!Number.isInteger(minimum)) {

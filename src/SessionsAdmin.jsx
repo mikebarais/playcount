@@ -39,10 +39,8 @@ function normalizeTime(value) {
 function TimeInput({ value, onChange }) {
   return (
     <input
-      inputMode="numeric"
+      type="time"
       list="half-hour-times"
-      placeholder="HH:MM"
-      maxLength={5}
       required
       value={value}
       onChange={(event) => onChange(event.target.value)}
@@ -76,7 +74,6 @@ function emptySessionDraft() {
     location: '',
     name: '',
     type: 'training',
-    minPlayers: '',
   };
 }
 
@@ -135,7 +132,6 @@ export default function SessionsAdmin({ client }) {
     const name = creating.name.trim();
     const time = normalizeTime(creating.time);
     const durationMinutes = Number(creating.durationMinutes);
-    const minPlayers = creating.minPlayers.trim() === '' ? null : Number(creating.minPlayers);
 
     if (!creating.date) {
       setError('Enter a date.');
@@ -161,12 +157,7 @@ export default function SessionsAdmin({ client }) {
       setError('Enter a name for the session.');
       return;
     }
-    if (minPlayers !== null && (!Number.isInteger(minPlayers) || minPlayers < 1)) {
-      setError('Minimum players must be a whole number of at least 1, or empty.');
-      return;
-    }
-
-    runAction({ kind: 'create', values: { ...creating, time, location, name, durationMinutes, minPlayers } });
+    runAction({ kind: 'create', values: { ...creating, time, location, name, durationMinutes, minPlayers: null } });
   }
 
   function beginEdit(session) {
@@ -177,7 +168,7 @@ export default function SessionsAdmin({ client }) {
       sessionId: session.session_id,
       time: shortTime(session.local_time),
       location: session.location,
-      minPlayers: session.min_players === null ? '' : String(session.min_players),
+      minPlayers: session.is_exceptional || session.min_players === null ? '' : String(session.min_players),
     });
   }
 
@@ -193,7 +184,7 @@ export default function SessionsAdmin({ client }) {
 
     const location = editing.location.trim();
     const time = normalizeTime(editing.time);
-    const minPlayers = editing.minPlayers.trim() === '' ? null : Number(editing.minPlayers);
+    const minPlayers = session.is_exceptional || editing.minPlayers.trim() === '' ? null : Number(editing.minPlayers);
 
     if (!time) {
       setError('Enter the start time as HH:MM, for example 09:30.');
@@ -345,17 +336,6 @@ export default function SessionsAdmin({ client }) {
               onChange={(event) => setCreating({ ...creating, location: event.target.value })}
             />
           </label>
-          <label>
-            Minimum players
-            <input
-              type="number"
-              min={1}
-              step={1}
-              placeholder="Optional"
-              value={creating.minPlayers}
-              onChange={(event) => setCreating({ ...creating, minPlayers: event.target.value })}
-            />
-          </label>
           <div className="admin-form-actions">
             <button className="admin-secondary-button" type="button" onClick={() => setCreating(null)}>
               Cancel
@@ -395,7 +375,9 @@ export default function SessionsAdmin({ client }) {
                       {shortTime(session.local_time)}{end && `–${end}`}
                     </p>
                     <p>{session.location}</p>
-                    <p>Minimum players: {minimumLabel(session.min_players, session.default_min_players)}</p>
+                    {!session.is_exceptional && (
+                      <p>Minimum players: {minimumLabel(session.min_players, session.default_min_players)}</p>
+                    )}
                     {cancelled && (
                       <p className="admin-session-status">
                         Cancelled{session.cancellation_reason && `: ${session.cancellation_reason}`}
@@ -431,17 +413,19 @@ export default function SessionsAdmin({ client }) {
                         onChange={(event) => setEditing({ ...editing, location: event.target.value })}
                       />
                     </label>
-                    <label>
-                      Minimum players
-                      <input
-                        type="number"
-                        min={1}
-                        step={1}
-                        placeholder={session.is_exceptional ? 'None' : `${session.default_min_players} (default)`}
-                        value={editing.minPlayers}
-                        onChange={(event) => setEditing({ ...editing, minPlayers: event.target.value })}
-                      />
-                    </label>
+                    {!session.is_exceptional && (
+                      <label>
+                        Minimum players
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          placeholder={`${session.default_min_players} (default)`}
+                          value={editing.minPlayers}
+                          onChange={(event) => setEditing({ ...editing, minPlayers: event.target.value })}
+                        />
+                      </label>
+                    )}
                     <div className="admin-form-actions">
                       <button className="admin-secondary-button" type="button" onClick={() => setEditing(null)}>
                         Cancel
