@@ -60,12 +60,12 @@ Each club uses its own application deployment and Supabase project.
 - A club can define one or more recurring weekly session patterns.
 - Each pattern contains the day of week, default time, default duration, and default location.
 - Each pattern has its own minimum required number of participants.
-- The application automatically generates upcoming sessions from these recurring patterns.
+- The application automatically generates upcoming sessions from these recurring patterns, copying their time, duration, location, and minimum players into each session.
 - When a member opens the application, any missing pattern sessions from today through the next 4 weeks are created, in the club's timezone. The member then sees at most 10 sessions (recurring and exceptional) in that window, including cancelled ones.
 - Each generated session records the pattern date it was created for (`occurrence_date`), so a per-date override or cancellation never causes that date to be generated again.
 - The upcoming sessions are ordered chronologically.
 - The system must support different patterns for the same club, for example Thursday and Saturday sessions.
-- The Patterns administration tab lists weekly patterns and allows administrators to create or edit their weekday, time, duration, location, and minimum. New values apply to sessions generated afterward; existing session dates, times, duration, and location stay unchanged, while their effective minimum follows the pattern unless overridden.
+- The Patterns administration tab lists weekly patterns and allows administrators to create or edit their weekday, time, duration, location, and minimum. New values apply to sessions generated afterward; existing sessions retain their saved details and minimum.
 - The interface must use dynamic dates and session information rather than hard-coded wording such as "Saturday".
 
 ## 6. Exceptional Sessions
@@ -76,7 +76,7 @@ Each club uses its own application deployment and Supabase project.
 - The administrator defines the type, date, time, duration, and location; a description (for example, match opponents) is optional.
 - Exceptional sessions appear in the same chronological session list as recurring sessions.
 - They use the same attendance/RSVP mechanism as regular sessions.
-- Exceptional sessions can subsequently be modified or cancelled by an administrator.
+- Exceptional sessions can subsequently be modified, cancelled, or permanently deleted by an administrator. Deletion also removes their attendance responses and exceptional players and requires confirmation.
 - The Sessions admin tab has an "Add exceptional session" button. The form takes an optional description, a type (Training or Match), the date (today or later), start time, duration in minutes, and location; exceptional sessions have no minimum-player field.
 - Start times use a time input that accepts any minute (for example 09:37).
 - Session types are stored as language-neutral codes (`regular`, `training`, `match`). Regular weekly sessions use `regular` and count as training.
@@ -91,7 +91,7 @@ Each club uses its own application deployment and Supabase project.
 - An administrator can cancel an individual session.
 - A cancelled session can have a cancellation reason.
 - Cancellation affects the individual session only and does not change the recurring weekly pattern.
-- The Administration area has a Sessions sub-tab, first and before Members, listing regular and exceptional sessions from today through the next 4 weeks in chronological order. For each session an administrator can change the start time (on the same date) and location; regular sessions also allow changing minimum players (empty restores the pattern default). An administrator can cancel a session with an optional reason or restore it, and add or remove exceptional players by name. These session changes are saved immediately, without a confirmation step.
+- The Administration area has a Sessions sub-tab, first and before Members, listing regular and exceptional sessions from today through the next 4 weeks in chronological order. For each session an administrator can change the start time (on the same date) and location; regular sessions also require an explicit saved minimum number of players. An administrator can cancel a session with an optional reason or restore it, and add or remove exceptional players by name. These changes are saved immediately; exceptional-session deletion requires confirmation.
 - Duration overrides are not yet editable in the interface.
 
 ## 8. Attendance / RSVP
@@ -117,9 +117,9 @@ Each club uses its own application deployment and Supabase project.
 ## 10. Minimum Participation and Viability
 
 - Each recurring schedule pattern has its own configurable minimum number of participants.
-- A regular session uses its schedule pattern's minimum unless a session-specific minimum is set. Exceptional sessions have no displayed minimum.
+- A regular session stores a copy of its pattern's minimum when generated. Changing the pattern later does not change that session's minimum. Exceptional sessions have no displayed minimum.
 - The application calculates the total confirmed participants for a session from registered players marked present plus exceptional participants added by the administrator.
-- A footer row below the player and guest rows displays each session's current participant count against its effective minimum (session override, or schedule-pattern minimum), and states whether the minimum is met or how many more participants are needed. A session without a minimum shows only its participant count.
+- A footer row below the player and guest rows displays each session's current participant count against its saved minimum and states whether the minimum is met or how many more participants are needed. A session without a minimum shows only its participant count.
 
 ## 11. Main Attendance Interface
 
@@ -225,7 +225,7 @@ erDiagram
 		timestamptz starts_at
 		interval duration "inherits schedule pattern unless overridden"
 		text location
-		integer min_players "nullable; overrides the pattern minimum, optional for exceptional sessions"
+		integer min_players "snapshot for regular sessions; nullable for exceptional sessions"
 		text event_description "optional description for exceptional sessions"
 		text event_type "regular for weekly sessions; training or match for exceptional sessions"
 		text status

@@ -66,9 +66,7 @@ export default function AttendanceMatrix({ board, memberId, onToggle }) {
       .map((attendance) => attendance.member_id),
   );
   const participantCount = present.size + sessionGuests.length;
-  const minimum = selectedSession.schedule_pattern_id === null
-    ? null
-    : selectedSession.min_players ?? selectedSession.schedule_patterns?.min_players;
+  const minimum = selectedSession.schedule_pattern_id === null ? null : selectedSession.min_players;
   const minimumReached = participantCount >= minimum;
 
   function followVisibleSession(event) {

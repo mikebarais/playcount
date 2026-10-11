@@ -99,6 +99,12 @@ export async function setSessionCancelled(client, sessionId, cancelled, reason =
   });
 }
 
+export async function deleteExceptionalSession(client, sessionId) {
+  await invokeAdmin(client, 'admin_delete_exceptional_session', {
+    p_session_id: sessionId,
+  });
+}
+
 export async function addExceptionalPlayer(client, sessionId, name) {
   return invokeAdmin(client, 'admin_add_exceptional_player', {
     p_session_id: sessionId,

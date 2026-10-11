@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import {
   addExceptionalPlayer,
   createSession,
+  deleteExceptionalSession,
   listSessions,
   removeExceptionalPlayer,
   setSessionCancelled,
   updateSession,
 } from './adminApi';
+import ConfirmDialog from './ConfirmDialog';
 import { sessionKind, sessionTypeLabel, sessionTypes } from './sessionTypes';
 
 const halfHourTimes = Array.from({ length: 48 }, (_, index) => (
@@ -56,11 +58,6 @@ function endTime(time, duration) {
   return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-function minimumLabel(minPlayers, defaultMinPlayers) {
-  if (minPlayers !== null) return String(minPlayers);
-  return defaultMinPlayers === null ? 'None' : `${defaultMinPlayers} (default)`;
-}
-
 function todayIso() {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -83,6 +80,7 @@ export default function SessionsAdmin({ client }) {
   const [creating, setCreating] = useState(null);
   const [editing, setEditing] = useState(null);
   const [cancelling, setCancelling] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [guestNames, setGuestNames] = useState({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -121,6 +119,7 @@ export default function SessionsAdmin({ client }) {
     resetFeedback();
     setEditing(null);
     setCancelling(null);
+    setDeleting(null);
     setCreating(emptySessionDraft());
   }
 
@@ -160,6 +159,7 @@ export default function SessionsAdmin({ client }) {
     resetFeedback();
     setCreating(null);
     setCancelling(null);
+    setDeleting(null);
     setEditing({
       sessionId: session.session_id,
       time: shortTime(session.local_time),
@@ -190,8 +190,8 @@ export default function SessionsAdmin({ client }) {
       setError('Enter a location.');
       return;
     }
-    if (minPlayers !== null && (!Number.isInteger(minPlayers) || minPlayers < 1)) {
-      setError('Minimum players must be a whole number of at least 1, or empty.');
+    if (!session.is_exceptional && (!Number.isInteger(minPlayers) || minPlayers < 1)) {
+      setError('Minimum players must be a whole number of at least 1.');
       return;
     }
 
@@ -239,6 +239,10 @@ export default function SessionsAdmin({ client }) {
       } else if (kind === 'restore') {
         await setSessionCancelled(client, session.session_id, false);
         setMessage(`Session on ${formatDate(session.local_date)} restored.`);
+      } else if (kind === 'delete') {
+        await deleteExceptionalSession(client, session.session_id);
+        setDeleting(null);
+        setMessage(`Exceptional session on ${formatDate(session.local_date)} deleted.`);
       } else if (kind === 'addGuest') {
         await addExceptionalPlayer(client, session.session_id, action.name);
         setGuestNames((current) => ({ ...current, [session.session_id]: '' }));
@@ -264,7 +268,7 @@ export default function SessionsAdmin({ client }) {
       <datalist id="half-hour-times">
         {halfHourTimes.map((time) => <option key={time} value={time} />)}
       </datalist>
-      {error && <p className="admin-alert" role="alert">{error}</p>}
+      {error && !deleting && <p className="admin-alert" role="alert">{error}</p>}
       {message && <p className="admin-notice" role="status">{message}</p>}
 
       <div className="admin-list-toolbar">
@@ -371,7 +375,7 @@ export default function SessionsAdmin({ client }) {
                     </p>
                     <p>{session.location}</p>
                     {!session.is_exceptional && (
-                      <p>Minimum players: {minimumLabel(session.min_players, session.default_min_players)}</p>
+                      <p>Minimum players: {session.min_players}</p>
                     )}
                     {cancelled && (
                       <p className="admin-session-status">
@@ -388,6 +392,11 @@ export default function SessionsAdmin({ client }) {
                     ) : (
                       <button type="button" className="admin-danger-button" onClick={() => beginCancel(session)}>
                         Cancel session
+                      </button>
+                    )}
+                    {session.is_exceptional && (
+                      <button type="button" className="admin-danger-button" disabled={busy} onClick={() => { resetFeedback(); setDeleting(session); }}>
+                        Delete
                       </button>
                     )}
                   </div>
@@ -415,7 +424,7 @@ export default function SessionsAdmin({ client }) {
                           type="number"
                           min={1}
                           step={1}
-                          placeholder={`${session.default_min_players} (default)`}
+                          required
                           value={editing.minPlayers}
                           onChange={(event) => setEditing({ ...editing, minPlayers: event.target.value })}
                         />
@@ -488,6 +497,18 @@ export default function SessionsAdmin({ client }) {
             );
           })}
         </ul>
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title="Delete exceptional session"
+          confirmLabel="Delete session"
+          busy={busy}
+          error={error}
+          onCancel={() => { setDeleting(null); setError(''); }}
+          onConfirm={() => runAction({ kind: 'delete', session: deleting })}
+        >
+          <p>Permanently delete the session on <strong>{formatDate(deleting.local_date)}</strong>? All attendance responses and exceptional players for this session will also be deleted. This cannot be undone.</p>
+        </ConfirmDialog>
       )}
     </div>
   );
