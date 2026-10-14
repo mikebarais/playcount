@@ -1,4 +1,7 @@
 project_id = "playcount-lamanchette"
 
+[db.seed]
+enabled = false
+
 [functions.session]
 verify_jwt = false
