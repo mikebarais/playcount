@@ -4,6 +4,13 @@ async function invokeAdmin(client, functionName, params = {}) {
   return data;
 }
 
+export async function updateClubNotification(client, message, expiresOn) {
+  await invokeAdmin(client, 'admin_update_club_notification', {
+    p_message: message,
+    p_expires_on: expiresOn,
+  });
+}
+
 export async function listMembers(client) {
   return invokeAdmin(client, 'admin_list_members');
 }

@@ -36,6 +36,30 @@ function applyFavicon(url) {
   link.href = url;
 }
 
+function dateKeyInTimezone(date, timeZone) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date)
+      .filter(({ type }) => type !== 'literal')
+      .map(({ type, value }) => [type, value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function formatDateKey(dateKey) {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Intl.DateTimeFormat('en', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, day, 12)));
+}
+
 function getPersonalLink(pathname = window.location.pathname) {
   const match = pathname.match(personalLinkPattern);
   if (!match) return null;
@@ -82,6 +106,7 @@ async function loadAttendanceBoard(memberClient) {
 
 export default function App() {
   const [club, setClub] = useState(null);
+  const [notification, setNotification] = useState(null);
   const [memberName, setMemberName] = useState(null);
   const [member, setMember] = useState(null);
   const [activeArea, setActiveArea] = useState('attendance');
@@ -93,6 +118,7 @@ export default function App() {
   const [signInFailed, setSignInFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [clock, setClock] = useState(() => new Date());
 
   useEffect(() => {
     let isMounted = true;
@@ -112,8 +138,9 @@ export default function App() {
 
         if (error || !data) throw error || new Error('Club row was not found.');
 
-        const logoUrl = data.logo_path
-          ? supabase.storage.from('branding').getPublicUrl(data.logo_path).data.publicUrl
+        const logoPath = data.logo_path?.trim();
+        const logoUrl = logoPath
+          ? supabase.storage.from('branding').getPublicUrl(logoPath).data.publicUrl
           : null;
 
         setClub({ ...data, logoUrl });
@@ -125,6 +152,16 @@ export default function App() {
           if (!isMounted) return;
           setMemberName(row.name);
           setMember({ id: row.id, client: memberClient, isAdmin: row.is_admin });
+          const { data: notificationData, error: notificationError } = await memberClient
+            .from('clubs')
+            .select('notification_message, notification_expires_on, timezone')
+            .limit(1)
+            .maybeSingle();
+          if (notificationError) {
+            console.error('Unable to load club notification:', notificationError);
+          } else if (isMounted) {
+            setNotification(notificationData);
+          }
           try {
             const loadedBoard = await loadAttendanceBoard(memberClient);
             if (isMounted) setBoard(loadedBoard);
@@ -190,6 +227,12 @@ export default function App() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!memberName || !notification?.notification_expires_on) return undefined;
+    const interval = window.setInterval(() => setClock(new Date()), 60_000);
+    return () => window.clearInterval(interval);
+  }, [memberName, notification?.notification_expires_on]);
 
   // Reload so sessions created or changed in Administration show up without a page refresh.
   async function openAttendance() {
@@ -258,6 +301,13 @@ export default function App() {
     return <main className="page-shell"><p role="alert">Club information is unavailable.</p></main>;
   }
 
+  const notificationActive = Boolean(
+    memberName
+    && notification?.notification_message
+    && notification.notification_expires_on
+    && dateKeyInTimezone(clock, notification.timezone || 'UTC') <= notification.notification_expires_on,
+  );
+
   return (
     <main className="page-shell">
       <section
@@ -298,6 +348,19 @@ export default function App() {
           )}
         </div>
       </section>
+      {notificationActive && (
+        <aside className="club-notification" role="alert">
+          <svg className="club-notification-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 2.7 19.1a1.3 1.3 0 0 0 1.1 1.9h16.4a1.3 1.3 0 0 0 1.1-1.9L12 3Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+            <path d="M12 9v5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="12" cy="17" r="1" fill="currentColor" />
+          </svg>
+          <div className="club-notification-copy">
+            <p>{notification.notification_message}</p>
+            <span>Until {formatDateKey(notification.notification_expires_on)}</span>
+          </div>
+        </aside>
+      )}
       {member?.isAdmin && (
         <nav className="area-tiles" aria-label="Member areas">
           <button
@@ -323,6 +386,7 @@ export default function App() {
           <AdminPanel
             client={member.client}
             currentMemberId={member.id}
+            onNotificationChange={setNotification}
           />
         ) : <section className="sessions" aria-labelledby="sessions-title">
           <h2 id="sessions-title">Upcoming sessions</h2>

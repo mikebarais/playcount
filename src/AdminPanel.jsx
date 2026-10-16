@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ClubNoticeAdmin from './ClubNoticeAdmin';
 import MembersAdmin from './MembersAdmin';
 import PatternsAdmin from './PatternsAdmin';
 import SessionsAdmin from './SessionsAdmin';
@@ -6,10 +7,11 @@ import SessionsAdmin from './SessionsAdmin';
 const sections = [
   { id: 'sessions', label: 'Sessions' },
   { id: 'members', label: 'Members' },
+  { id: 'notice', label: 'Notice' },
   { id: 'patterns', label: 'Patterns' },
 ];
 
-export default function AdminPanel({ client, currentMemberId }) {
+export default function AdminPanel({ client, currentMemberId, onNotificationChange }) {
   const [section, setSection] = useState('sessions');
 
   return (
@@ -36,6 +38,7 @@ export default function AdminPanel({ client, currentMemberId }) {
       </nav>
 
       {section === 'members' && <MembersAdmin client={client} currentMemberId={currentMemberId} />}
+      {section === 'notice' && <ClubNoticeAdmin client={client} onNotificationChange={onNotificationChange} />}
       {section === 'sessions' && <SessionsAdmin client={client} />}
       {section === 'patterns' && <PatternsAdmin client={client} />}
     </section>

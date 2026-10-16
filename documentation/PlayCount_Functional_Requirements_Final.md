@@ -150,16 +150,15 @@ The principal attendance view shows one session's attendance at a time, with a c
 - Administrator can modify or cancel sessions.
 - Administrator can manage the club's players.
 - Administrator can manage other club administrators.
-- Administrator can manage the club announcement/banner.
+- Administrator can manage the club tagline and expiring member notification.
 - Administrator can view players' personal direct links.
 
 ## 14. Club Announcement / Banner
 
-- A club administrator can define an announcement message.
-- The announcement is displayed prominently in the player-facing session view.
-- The announcement is associated with the club rather than with an individual player.
-- Each club defines its color theme in the `clubs.theme` row (`page`, `banner`, `text`, `accent`, `shape`, `rule`, `training`, `match`, `cancelled` hex colors); the frontend applies it and falls back to neutral defaults.
-- A club can have a logo, stored in the public `branding` storage bucket and referenced by `clubs.logo_path`. Signed-in members see it in the banner corner, and it is used as the browser tab icon.
+- `clubs.banner_message` is the club tagline shown next to the club name; it is separate from member notifications.
+- An administrator can set, update, or clear one member notification with a required expiration date.
+- The alert notification is displayed to signed-in members, not on the public sign-in screen, through its expiration date in the club's timezone.
+- The notification uses alert styling with an orange treatment and attention icon, and is stored on the club row for all members to see.
 
 ## 15. Administrator Management
 
